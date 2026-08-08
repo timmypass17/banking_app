@@ -8,27 +8,13 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 public class ConnectionUtil {
-
-    // public static Connection getConnection() throws SQLException {
-    //     /* URL String breakdown:
-    //      * jdbc:postgresql -> jdbc should handle this connection using a postgresql driver
-    //      * localhost -> hostname or IP address
-    //      * 5432 -> port number (5432 is the default for postgresql)
-    //      * trng2464 -> data of the specific database that PostgreSQL should connect to
-    //      */
-    //     String url = "jdbc:postgresql://localhost:5432/trng2464";
-    //     String user = "joe";        // this is the user created using DCL
-    //     String pass = "password";   // this is the password created for that user
-    //     return DriverManager.getConnection(url, user, pass);
-    // }
-
-    public static Connection getConnection_env() throws SQLException {
+    public static Connection getConnection() throws SQLException {
         String url = System.getenv("CONN_URL");
         String user = System.getenv("CONN_NAME");
         String pass = System.getenv("CONN_PASS");
-        System.out.println("CONN_URL: " + url);
-        System.out.println("CONN_NAME: " + user);
-        System.out.println("CONN_PASS: " + pass);
+        // System.out.println("CONN_URL: " + url);
+        // System.out.println("CONN_NAME: " + user);
+        // System.out.println("CONN_PASS: " + pass);
         return DriverManager.getConnection(url, user, pass);
     }
 }
