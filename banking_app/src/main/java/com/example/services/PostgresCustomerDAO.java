@@ -5,10 +5,16 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.time.LocalDate;
 import java.time.ZoneId;
 
+import com.example.models.BankAccount;
+import com.example.models.BankAccountByCustomerResult;
+import com.example.models.BankAccountType;
 import com.example.models.Customer;
 import com.example.utils.ConnectionUtil;
 
@@ -54,7 +60,7 @@ public class PostgresCustomerDAO implements CustomerDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    String id = rs.getString("id");
+                    int id = rs.getInt("id");
                     String firstName = rs.getString("first_name");
                     String lastName = rs.getString("last_name");
                     LocalDate dateOfBirth = rs.getObject("date_of_birth", LocalDate.class);
@@ -81,5 +87,4 @@ public class PostgresCustomerDAO implements CustomerDAO {
             return Optional.empty();
         }
     }
-
 }
