@@ -13,8 +13,10 @@ import com.example.exceptions.InvalidAmountException;
 import com.example.models.Bank;
 import com.example.models.BankAccount;
 import com.example.models.BankAccountByCustomerResult;
+import com.example.models.BankAccountType;
 import com.example.models.Customer;
 import com.example.models.TransferResult;
+import com.example.models.helpers.BankAccountSummary;
 import com.example.services.BankDAO;
 import com.example.services.CustomerDAO;
 import com.example.utils.ConnectionUtil;
@@ -133,6 +135,8 @@ public class BankApp {
         if (option.equals("1")) {
             // get all account
             handleViewAllAccounts();
+        } else if (option.equals("2")) {
+            handleOpenBankAccount();
         }
     }
 
@@ -154,6 +158,12 @@ public class BankApp {
         }
 
         System.out.println(sb.toString());
+
+        if (bankAccountResult.isEmpty()) {
+            System.out.println("No bank accounts opened.");
+            return;
+        }
+
         // Append to message
         System.out.print("Please enter command: ");
         String option = scanner.nextLine();
@@ -161,6 +171,78 @@ public class BankApp {
         
         int selectedAccountId = bankAccountResult.get(accountIndex).getBankAccountId();
         handleBankAccountDetail(selectedAccountId);
+    }
+    
+    // Open bank account for
+    // 1. Bank Of America
+    // 2. Chase
+    // Please enter command: 1
+    // You selected Bank of America
+    // Please select account type:
+    // 1. Savings
+    // 2. Checkings
+    // Please enter account type: 1
+    // You succesfully created savings account for Bank of America!
+    public void handleOpenBankAccount() {
+        // Get all banks
+        List<Bank> banks;
+
+        try {
+            banks = bankDao.getAllBanks();
+        } catch (SQLException e) {
+            System.out.println("Database error: " + e.getMessage());
+            return;
+        }
+
+        // Display banks
+        System.out.println("Open bank account for:");
+
+        for (int i = 0; i < banks.size(); i++) {
+            System.out.printf("%d. %s%n", i + 1, banks.get(i).getName());
+        }
+
+        System.out.print("Please enter command: ");
+        int bankChoice = Integer.parseInt(scanner.nextLine());
+
+        if (bankChoice < 1 || bankChoice > banks.size()) {
+            System.out.println("Invalid bank selection.");
+            return;
+        }
+
+        Bank selectedBank = banks.get(bankChoice - 1);
+
+        System.out.printf("You selected %s%n", selectedBank.getName());
+
+        // Account type
+        System.out.println("Please select account type:");
+        System.out.println("1. Savings");
+        System.out.println("2. Checking");
+
+        System.out.print("Please enter account type: ");
+        int accountTypeChoice = Integer.parseInt(scanner.nextLine());
+
+        BankAccountType accountType;
+
+        if (accountTypeChoice == 1) {
+            accountType = BankAccountType.SAVINGS;
+        } else if (accountTypeChoice == 2) {
+            accountType = BankAccountType.CHECKINGS;
+        } else {
+            System.out.println("Invalid account type.");
+            return;
+        }
+
+        // Create account
+        try {
+            bankDao.createBankAccount(new BankAccount(customer.get().getId(), selectedBank.getId(), accountType, 0));
+            System.out.printf(
+                "You successfully created %s account for %s!%n",
+                accountType.toString().toLowerCase(),
+                selectedBank.getName()
+            );
+        } catch(SQLException e) {
+            System.out.println(e.getMessage());
+        }
     }
 
     // Please enter command: 1 (or back)
@@ -217,6 +299,8 @@ public class BankApp {
                 handleWithdraw(bank.getName(), bankAccountId);
             } else if (option.equals("3")) {
                 handleTransferMoneyToAnotherAccount(bank, bankAccountId);
+            } else if (option.equals("4")) {
+                handleTransferMoneyToAnotherUserAccount(bank, bankAccountId);
             }
 
 
@@ -291,12 +375,128 @@ public class BankApp {
             .longValueExact();
 
         try {
-            TransferResult result = bankDao.transferMoney(amount, sourceAccountId, destinationAccountId);
+            TransferResult result = bankDao.transferMoney(amount, sourceAccountId, destinationAccountId, customer.get().getId());
             System.out.printf("Successfully transfered $%s to %s.%n", dollars, bankAccountResult.get(accountIndex).getBankName());
             System.out.printf("%s New Balance: $%.2f%n", bank.getName(), result.getSourceNewBalance() / 100.0);
             System.out.printf("%s New Balance: $%.2f%n", bankAccountResult.get(accountIndex).getBankName(), result.getDestinationNewBalance() / 100.0);
+        } catch (InvalidAmountException e) {
+            System.out.println(e.getMessage());
         } catch (SQLException e) {
             System.out.printf("Database error, failed to transfeer: %s%n", e.getMessage());
+        }
+    }
+
+    // Transfer money to another user's account?
+    // 1. Person A (Bank A)
+    // 2. Person A (Bank B)
+    // 3. Person B (Bank A)
+    public void handleTransferMoneyToAnotherUserAccount(Bank bank, int sourceAccountId) {
+        System.out.printf(
+            "Transfer money from %s into another user's account?%n",
+            bank.getName()
+        );
+
+        // Fetch all bank accounts
+        List<BankAccountSummary> accounts;
+
+        try {
+            accounts = bankDao.getAllBankAccountsSummary();
+        } catch (SQLException e) {
+            System.out.printf(
+                "Database error, failed to retrieve accounts: %s%n",
+                e.getMessage()
+            );
+            return;
+        }
+
+        // Remove accounts belonging to the current user
+        int currentCustomerId = customer.get().getId();
+
+        accounts.removeIf(
+            account -> account.getCustomerId() == currentCustomerId
+        );
+
+        // Display available destination accounts
+        for (int i = 0; i < accounts.size(); i++) {
+            BankAccountSummary account = accounts.get(i);
+
+            System.out.printf(
+                "%d. %s (%s #%d)%n",
+                i + 1,
+                account.getCustomerName(),
+                account.getBankName(),
+                account.getBankAccountId()
+            );
+        }
+
+        System.out.print("Please enter command: ");
+        int accountIndex = Integer.parseInt(scanner.nextLine()) - 1;
+
+        if (accountIndex < 0 || accountIndex >= accounts.size()) {
+            System.out.println("Invalid account selection.");
+            return;
+        }
+
+        BankAccountSummary destinationAccount = accounts.get(accountIndex);
+
+        System.out.print("Please enter amount: ");
+
+        BigDecimal dollars;
+
+        try {
+            dollars = new BigDecimal(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid amount.");
+            return;
+        }
+
+        long amount;
+
+        try {
+            amount = dollars
+                .movePointRight(2)
+                .longValueExact();
+        } catch (ArithmeticException e) {
+            System.out.println("Amount must have at most 2 decimal places.");
+            return;
+        }
+
+        try {
+            TransferResult result = bankDao.transferMoney(
+                amount,
+                sourceAccountId,
+                destinationAccount.getBankAccountId(),
+                currentCustomerId
+            );
+
+            System.out.printf(
+                "Successfully transferred $%.2f to %s's %s.%n",
+                dollars,
+                destinationAccount.getCustomerName(),
+                destinationAccount.getBankName()
+            );
+
+            System.out.printf(
+                "%s's %s New Balance: $%.2f%n",
+                customer.get().getFirstName(),
+                bank.getName(),
+                result.getSourceNewBalance() / 100.0
+            );
+
+            System.out.printf(
+                "%s's %s New Balance: $%.2f%n",
+                destinationAccount.getCustomerName(),
+                destinationAccount.getBankName(),
+                result.getDestinationNewBalance() / 100.0
+            );
+
+        } catch (InvalidAmountException e) {
+            System.out.println(e.getMessage());
+        } catch (SQLException e) {
+            System.out.printf(
+                "Database error, failed to transfer: %s%n",
+                e.getMessage()
+            );
         }
     }
 
@@ -320,7 +520,7 @@ public class BankApp {
                 throw new InvalidAmountException("Withdrawal amount must be positive");
             }
 
-            long newBalance = bankDao.withdraw(bankAccountId, amount);
+            long newBalance = bankDao.withdraw(bankAccountId, amount, customer.get().getId());
             System.out.printf("Successfully withdrew $%s to \"%s\".%n", dollars, bankName);
             System.out.printf("New Balance: $%.2f%n", newBalance / 100.0);
         } catch (InvalidAmountException e) {
