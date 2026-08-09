@@ -14,6 +14,7 @@ import com.example.models.BankAccount;
 import com.example.models.BankAccountByCustomerResult;
 import com.example.utils.ConnectionUtil;
 import com.example.models.BankAccountType;
+import com.example.models.TransferResult;
 
 public class PostgresBankDAO implements BankDAO {
     @Override
@@ -106,56 +107,83 @@ public class PostgresBankDAO implements BankDAO {
 
     @Override
     public long deposit(int bankAccountId, long amount) throws SQLException {
+        try (Connection conn = ConnectionUtil.getConnection()) {
+            conn.setAutoCommit(false);
+
+            try {
+                long balance = deposit(conn, bankAccountId, amount);
+                conn.commit();
+                return balance;
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            }
+        }
+    }
+
+    @Override
+    public long withdraw(int bankAccountId, long amount) throws SQLException {
+        try (Connection conn = ConnectionUtil.getConnection()) {
+            conn.setAutoCommit(false);
+
+            try {
+                long balance = withdraw(conn, bankAccountId, amount);
+                conn.commit();
+                return balance;
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            }
+        }
+    }
+
+    private long deposit(Connection conn, int bankAccountId, long amount) throws SQLException {
+
         String depositQuery = "UPDATE bank_accounts SET balance = balance + ? WHERE id = ?";
+
         String balanceQuery = "SELECT balance FROM bank_accounts WHERE id = ?";
-        // note: RETURN lets Postgres perform the update and return the new balance in one statement, so you don't need the transaction or second SELECT
+
         try (
-            Connection conn = ConnectionUtil.getConnection();
             PreparedStatement depositPs = conn.prepareStatement(depositQuery);
             PreparedStatement balancePs = conn.prepareStatement(balanceQuery)
         ) {
-            conn.setAutoCommit(false);
-
             depositPs.setLong(1, amount);
             depositPs.setInt(2, bankAccountId);
 
             int rowsAffected = depositPs.executeUpdate();
 
             if (rowsAffected == 0) {
-                conn.rollback();
-                throw new IllegalArgumentException("Bank account not found: " + bankAccountId);
+                throw new IllegalArgumentException(
+                    "Bank account not found: " + bankAccountId
+                );
             }
 
             balancePs.setInt(1, bankAccountId);
 
             try (ResultSet rs = balancePs.executeQuery()) {
                 if (rs.next()) {
-                    long balance = rs.getLong("balance");
-                    conn.commit();
-                    return balance;
+                    return rs.getLong("balance");
                 }
             }
 
-            conn.rollback();
             throw new SQLException("Failed to retrieve updated balance");
-        } catch (SQLException e) {
-            e.printStackTrace();
-            throw e;
         }
     }
 
-    @Override
-    public long withdraw(int bankAccountId, long amount) throws SQLException {
-        String withdrawQuery = "UPDATE bank_accounts SET balance = balance - ? WHERE id = ? AND balance >= ?";
-        String balanceQuery = "SELECT balance FROM bank_accounts WHERE id = ?";
+    private long withdraw(Connection conn, int bankAccountId, long amount) throws SQLException {
+
+        String withdrawQuery =
+            "UPDATE bank_accounts " +
+            "SET balance = balance - ? " +
+            "WHERE id = ? AND balance >= ?";
+
+        String balanceQuery =
+            "SELECT balance FROM bank_accounts WHERE id = ?";
 
         try (
-            Connection conn = ConnectionUtil.getConnection();
             PreparedStatement withdrawPs = conn.prepareStatement(withdrawQuery);
             PreparedStatement balancePs = conn.prepareStatement(balanceQuery)
         ) {
-            conn.setAutoCommit(false);
-
             withdrawPs.setLong(1, amount);
             withdrawPs.setInt(2, bankAccountId);
             withdrawPs.setLong(3, amount);
@@ -163,25 +191,40 @@ public class PostgresBankDAO implements BankDAO {
             int rowsAffected = withdrawPs.executeUpdate();
 
             if (rowsAffected == 0) {
-                conn.rollback();
-                throw new InvalidAmountException("Bank account not found or insufficient funds: " + bankAccountId);
+                throw new InvalidAmountException(
+                    "Bank account not found or insufficient funds: "
+                        + bankAccountId
+                );
             }
 
             balancePs.setInt(1, bankAccountId);
 
             try (ResultSet rs = balancePs.executeQuery()) {
                 if (rs.next()) {
-                    long balance = rs.getLong("balance");
-                    conn.commit();
-                    return balance;
+                    return rs.getLong("balance");
                 }
             }
 
-            conn.rollback();
             throw new SQLException("Failed to retrieve updated balance");
-        } catch (SQLException e) {
-            e.printStackTrace();
-            throw e;
+        }
+    }
+
+    @Override
+    public TransferResult transferMoney(long amount, int sourceAccountId, int destinationAccountId) throws SQLException {
+
+        try (Connection conn = ConnectionUtil.getConnection()) {
+            conn.setAutoCommit(false);
+
+            try {
+                long sourceBalance = withdraw(conn, sourceAccountId, amount);
+                long destinationBalance = deposit(conn, destinationAccountId, amount);
+                conn.commit();
+
+                return new TransferResult(sourceBalance, destinationBalance);
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            }
         }
     }
  }
