@@ -91,7 +91,7 @@ public class BankApp {
         String email;
         String password;
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         LocalDate dateOfBirth = LocalDate.parse("08/07/2026", formatter);
 
         System.out.print("Please enter first name: ");
@@ -99,7 +99,7 @@ public class BankApp {
         System.out.print("Please enter last name: ");
         lastName = scanner.nextLine();
         while (true) {
-            System.out.print("Please enter dob (MM/dd/yyyy): ");
+            System.out.print("Please enter dob (yyyy-MM-dd): ");
             dobStr = scanner.nextLine();
             try {
                 dob = LocalDate.parse(dobStr, formatter);
@@ -137,11 +137,181 @@ public class BankApp {
             handleViewAllAccounts();
         } else if (option.equals("2")) {
             handleOpenBankAccount();
+        } else if (option.equals("3")) {
+            // TODO: Handle transaction history
+        } else if (option.equals("4")) {
+            // TODO: Update profile
+            handleUpdateProfile();
         }
     }
 
+    public void handleUpdateProfile() {
+        String message = 
+            "Update profile:\n" 
+            + "1. Update first name\n"
+            + "2. Update last name\n"
+            + "3. Update date of birth\n"
+            + "4. Update email\n"
+            + "5. Update password\n";
+        System.out.println(message);
+        System.out.print("Please enter command: ");
+        String option = scanner.nextLine();
+
+        if (option.equals("1")) {
+            handleUpdateFirstName();
+        } else if (option.equals("2")) {
+            handleUpdateLastName();
+        } else if (option.equals("3")) {
+            handleUpdateDateOfBirth();
+        } else if (option.equals("4")) {
+            handleUpdateEmail();
+        } else if (option.equals("5")) {
+            handleUpdatePassword();
+        } else {
+            System.out.println("Invalid command.");
+        }
+    }
+
+    public void handleUpdateFirstName() {
+        System.out.print("Please enter new first name: ");
+        String firstName = scanner.nextLine();
+
+        Customer currentCustomer = customer.get();
+
+        Customer newProfile = new Customer(
+            currentCustomer.getId(),
+            firstName,
+            currentCustomer.getLastName(),
+            currentCustomer.getDateOfBirth(),
+            currentCustomer.getEmail(),
+            currentCustomer.getPassword()
+        );
+
+        try {
+            if (customerDao.updateProfile(currentCustomer.getId(), newProfile).isPresent()) {
+                System.out.println("Successfully updated profile!");
+                currentCustomer.setFirstName(firstName);
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public void handleUpdateLastName() {
+        System.out.print("Please enter new last name: ");
+        String lastName = scanner.nextLine();
+
+        Customer currentCustomer = customer.get();
+
+        Customer newProfile = new Customer(
+            currentCustomer.getId(),
+            currentCustomer.getFirstName(),
+            lastName,
+            currentCustomer.getDateOfBirth(),
+            currentCustomer.getEmail(),
+            currentCustomer.getPassword()
+        );
+
+        try {
+            if (customerDao.updateProfile(currentCustomer.getId(), newProfile).isPresent()) {
+                System.out.println("Successfully updated profile!");
+                currentCustomer.setLastName(lastName);
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public void handleUpdateDateOfBirth() {
+        System.out.print("Please enter new date of birth (yyyy-MM-dd): ");
+        String dateInput = scanner.nextLine();
+
+        LocalDate dateOfBirth;
+
+        try {
+            dateOfBirth = LocalDate.parse(dateInput);
+        } catch (DateTimeParseException e) {
+            System.out.println("Invalid date format.");
+            return;
+        }
+
+        Customer currentCustomer = customer.get();
+
+        Customer newProfile = new Customer(
+            currentCustomer.getId(),
+            currentCustomer.getFirstName(),
+            currentCustomer.getLastName(),
+            dateOfBirth,
+            currentCustomer.getEmail(),
+            currentCustomer.getPassword()
+        );
+
+        try {
+            if (customerDao.updateProfile(currentCustomer.getId(), newProfile).isPresent()) {
+                System.out.println("Successfully updated profile!");
+                currentCustomer.setDateOfBirth(dateOfBirth);
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public void handleUpdateEmail() {
+        System.out.print("Please enter new email: ");
+        String email = scanner.nextLine();
+
+        Customer currentCustomer = customer.get();
+
+        Customer newProfile = new Customer(
+            currentCustomer.getId(),
+            currentCustomer.getFirstName(),
+            currentCustomer.getLastName(),
+            currentCustomer.getDateOfBirth(),
+            email,
+            currentCustomer.getPassword()
+        );
+
+        try {
+            if (customerDao.updateProfile(currentCustomer.getId(), newProfile).isPresent()) {
+                System.out.println("Successfully updated profile!");
+                currentCustomer.setEmail(email);
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public void handleUpdatePassword() {
+        System.out.print("Please enter new password: ");
+        String password = scanner.nextLine();
+
+        Customer currentCustomer = customer.get();
+
+        Customer newProfile = new Customer(
+            currentCustomer.getId(),
+            currentCustomer.getFirstName(),
+            currentCustomer.getLastName(),
+            currentCustomer.getDateOfBirth(),
+            currentCustomer.getEmail(),
+            password
+        );
+
+        try {
+            Optional<Customer> updatedProfile = customerDao.updatePassword(currentCustomer.getId(), newProfile);
+            if (updatedProfile.isPresent()) {
+                System.out.println("Successfully updated password!");
+                currentCustomer.setPassword(updatedProfile.get().getPassword());
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    // TODO: Make mongo version
+    // TODO: Add tests to test dao (mock?)
+
     // View all accounts
-    // 1. Bank Of America (#0)
+    // 1. Bank Of America #0)
     // 2. Chase (#1)
     // 2. Chase (#2)
     public void handleViewAllAccounts() {
