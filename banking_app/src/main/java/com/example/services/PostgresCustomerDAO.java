@@ -87,4 +87,69 @@ public class PostgresCustomerDAO implements CustomerDAO {
             return Optional.empty();
         }
     }
+
+    @Override
+    public Optional<Customer> updateProfile(
+            int customerId,
+            Customer customer
+    ) throws SQLException {
+
+        String query =
+            "UPDATE customers " +
+            "SET first_name = ?, " +
+                "last_name = ?, " +
+                "date_of_birth = ?, " +
+                "email = ? " +
+            "WHERE id = ?";
+
+        try (
+            Connection conn = ConnectionUtil.getConnection();
+            PreparedStatement ps = conn.prepareStatement(query)
+        ) {
+            ps.setString(1, customer.getFirstName());
+            ps.setString(2, customer.getLastName());
+            ps.setDate(
+                3,
+                java.sql.Date.valueOf(customer.getDateOfBirth())
+            );
+            ps.setString(4, customer.getEmail());
+            ps.setInt(5, customerId);
+
+            int rowsAffected = ps.executeUpdate();
+
+            if (rowsAffected == 0) {
+                return Optional.empty();
+            }
+
+            return Optional.of(customer);
+        }
+    }
+
+    @Override
+    public Optional<Customer> updatePassword(int customerId, Customer customer) throws SQLException {
+
+        String query =
+            "UPDATE customers " +
+            "SET password = ? " +
+            "WHERE id = ?";
+
+        try (
+            Connection conn = ConnectionUtil.getConnection();
+            PreparedStatement ps = conn.prepareStatement(query)
+        ) {
+            String hashedPassword = BCrypt.withDefaults().hashToString(12, customer.getPassword().toCharArray());
+            ps.setString(1, hashedPassword);
+            ps.setInt(2, customerId);
+
+            int rowsAffected = ps.executeUpdate();
+
+            if (rowsAffected == 0) {
+                return Optional.empty();
+            }
+
+            customer.setPassword(hashedPassword);
+
+            return Optional.of(customer);
+        }
+    }
 }
