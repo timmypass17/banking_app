@@ -1,5 +1,6 @@
 package com.example;
 
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
 
+import com.example.exceptions.InvalidAmountException;
 import com.example.models.Bank;
 import com.example.models.BankAccount;
 import com.example.models.BankAccountByCustomerResult;
@@ -193,10 +195,10 @@ public class BankApp {
 
             String message = 
                 bank.getName() + "\n"
-                + "Total balance: $" + account.getBalance() + "\n"
+                + "Total balance: " + account.getBalanceFormatted() + "\n"
                 + "Account Type: " + account.getAccountType() + "\n"
                 + "1. Deposit\n"
-                + "2. Widthdraw\n"
+                + "2. Withdraw\n"
                 + "3. Transfer money to another accounts\n"
                 + "4. Transfer money to another user\n"
                 + "5. Close account\n";
@@ -210,6 +212,8 @@ public class BankApp {
             // TODO: implement 5 features
             if (option.equals("1")) {
                 handleDeposit(bank.getName(), bankAccountId);
+            } else if (option.equals("2")) {
+                handleWithdraw(bank.getName(), bankAccountId);
             }
 
 
@@ -228,15 +232,49 @@ public class BankApp {
         System.out.println("Deposit into " + bankName + " how much money?");
         System.out.print("Please enter amount: ");
 
-        int amount = Integer.parseInt(scanner.nextLine());
-
+        BigDecimal dollars = new BigDecimal(scanner.nextLine());
+        long amount = dollars
+            .movePointRight(2)
+            .longValueExact();
+        
         try {
             long newBalance = bankDao.deposit(bankAccountId, amount);
-            System.out.printf("Successfully deposited $%d to \"%s\".%n", amount, bankName);
-            System.out.printf("New Balance: $%d%n", newBalance);
+            System.out.printf("Successfully deposited $%s to \"%s\".%n", dollars, bankName);
+            System.out.printf("New Balance: $%.2f%n", newBalance / 100.0);
         } catch (SQLException e) {
             // dao knows database fails, but service knows what to do about it so propagate it
             System.out.printf("Database error, failed to deposit into %s: %s%n", bankName, e.getMessage());
+        }
+    }
+
+    // (1.1)
+    // Withdraw from "Bank Of America" how much money?
+    // Please enter amount: 100
+    // Successfully withdrew $100 to "Bank of America".
+    // New Balance: $100
+    public void handleWithdraw(String bankName, int bankAccountId) {
+        System.out.println("Withdraw from " + bankName + " how much money?");
+        System.out.print("Please enter amount: ");
+
+        // use bigdecimal for currency to avoid decimal arithmetic rounding issues (later convert to pennies)
+        BigDecimal dollars = new BigDecimal(scanner.nextLine());
+        long amount = dollars
+            .movePointRight(2)
+            .longValueExact();
+
+        try {
+            if (amount <= 0) {
+                throw new InvalidAmountException("Withdrawal amount must be positive");
+            }
+
+            long newBalance = bankDao.withdraw(bankAccountId, amount);
+            System.out.printf("Successfully withdrew $%s to \"%s\".%n", dollars, bankName);
+            System.out.printf("New Balance: $%.2f%n", newBalance / 100.0);
+        } catch (InvalidAmountException e) {
+            System.out.println(e.getMessage());
+        } catch (SQLException e) {
+            // dao knows database fails, but service knows what to do about it so propagate it
+            System.out.printf("Database error, failed to withdraw from %s: %s%n", bankName, e.getMessage());
         }
     }
 

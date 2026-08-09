@@ -51,6 +51,11 @@ public class BankAccount {
         return balance;
     }
 
+    public String getBalanceFormatted() {
+        return String.format("$%.2f", balance / 100.0);
+    }
+
+
     public void deposit(long amount) {
         if (amount <= 0) {
             throw new IllegalArgumentException("Deposit must be positive");
