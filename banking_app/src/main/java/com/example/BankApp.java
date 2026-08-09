@@ -14,6 +14,7 @@ import com.example.models.Bank;
 import com.example.models.BankAccount;
 import com.example.models.BankAccountByCustomerResult;
 import com.example.models.Customer;
+import com.example.models.TransferResult;
 import com.example.services.BankDAO;
 import com.example.services.CustomerDAO;
 import com.example.utils.ConnectionUtil;
@@ -214,6 +215,8 @@ public class BankApp {
                 handleDeposit(bank.getName(), bankAccountId);
             } else if (option.equals("2")) {
                 handleWithdraw(bank.getName(), bankAccountId);
+            } else if (option.equals("3")) {
+                handleTransferMoneyToAnotherAccount(bank, bankAccountId);
             }
 
 
@@ -244,6 +247,56 @@ public class BankApp {
         } catch (SQLException e) {
             // dao knows database fails, but service knows what to do about it so propagate it
             System.out.printf("Database error, failed to deposit into %s: %s%n", bankName, e.getMessage());
+        }
+    }
+
+    // (1.3)
+    // Transfer money from "Bank of America" into another account?
+    // 1. Chase
+
+    // Please enter command: 1
+    // You selected "Chase"
+    // Please enter amount to transfer: 100
+    // Successfully transfered $100 to "Chase".
+    // Bank of America New Balance: $0
+    // Chase New Balance: $100
+    public void handleTransferMoneyToAnotherAccount(Bank bank, int sourceAccountId) {
+        // Fetch all other banks thats not the selected one
+
+        System.out.printf("Transfer money from %s into another account?%n", bank.getName());
+
+        StringBuilder sb = new StringBuilder();
+        // Fetch all accounts from user
+        List<BankAccountByCustomerResult> bankAccountResult = bankDao.getAllBankAccountsByCustomerId(customer.get().getId());
+        bankAccountResult.removeIf(account -> account.getBankAccountId() == sourceAccountId); //
+
+        for (int i = 0; i < bankAccountResult.size(); i++) {
+            BankAccountByCustomerResult account = bankAccountResult.get(i);
+            sb.append(String.format("%d. %s (#%d)\n", i + 1, account.getBankName(), account.getBankAccountId()));
+        }
+
+        System.out.println(sb.toString());
+        // Append to message
+        System.out.print("Please enter command: ");
+        String option = scanner.nextLine();
+        int accountIndex = Integer.parseInt(option) - 1;
+        
+        int destinationAccountId = bankAccountResult.get(accountIndex).getBankAccountId();
+
+        System.out.print("Please enter amount: ");
+
+        BigDecimal dollars = new BigDecimal(scanner.nextLine());
+        long amount = dollars
+            .movePointRight(2)
+            .longValueExact();
+
+        try {
+            TransferResult result = bankDao.transferMoney(amount, sourceAccountId, destinationAccountId);
+            System.out.printf("Successfully transfered $%s to %s.%n", dollars, bankAccountResult.get(accountIndex).getBankName());
+            System.out.printf("%s New Balance: $%.2f%n", bank.getName(), result.getSourceNewBalance() / 100.0);
+            System.out.printf("%s New Balance: $%.2f%n", bankAccountResult.get(accountIndex).getBankName(), result.getDestinationNewBalance() / 100.0);
+        } catch (SQLException e) {
+            System.out.printf("Database error, failed to transfeer: %s%n", e.getMessage());
         }
     }
 
