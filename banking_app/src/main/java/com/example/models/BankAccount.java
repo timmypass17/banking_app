@@ -15,6 +15,13 @@ public class BankAccount {
         this.balance = balance;
     }
 
+    public BankAccount(int customerId, int bankId, BankAccountType accountType, long balance) {
+        this.customerId = customerId;
+        this.bankId = bankId;
+        this.accountType = accountType;
+        this.balance = balance;
+    }
+
     public int getId() {
         return id;
     }
