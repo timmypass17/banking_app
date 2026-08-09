@@ -13,4 +13,5 @@ public interface BankDAO {
     Optional<BankAccount> getBankAccountById(int bankAccountId) throws SQLException;
     Optional<Bank> getBankById(int bankId) throws SQLException; // optional, bank may not exist
     long deposit(int bankAccountId, long amount) throws SQLException;
+    long withdraw(int bankAccountId, long amount) throws SQLException;
 }
