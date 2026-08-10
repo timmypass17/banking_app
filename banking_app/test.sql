@@ -51,9 +51,58 @@ VALUES (3, 2, 'CHECKING', 50);
 
 SELECT * FROM bank_accounts;
 
-SELECT ba.id AS bank_account_id, b.name AS bank_name 
+SELECT ba.id AS bank_account_id,
+	b.name AS bank_name ,
+	c.first_name AS customer_name
 FROM bank_accounts AS ba
 JOIN banks AS b ON ba.bank_id = b.id
-JOIN customers AS c ON ba.customer_id = c.id
-WHERE ba.customer_id = 3;
+JOIN customers AS c ON ba.customer_id = c.id;
 
+SELECT * FROM customers;
+
+UPDATE customers 
+SET 
+	first_name = 'Josuke',
+	last_name = 'Higashikata',
+	date_of_birth = '2026-08-05',
+	email = '',
+	password = ''
+WHERE id = 2;
+
+-- Transaction
+
+CREATE TYPE transaction_action AS ENUM (
+    'DEPOSIT',
+    'WITHDRAW',
+    'TRANSFER'
+);
+
+DROP TABLE transactions;
+
+CREATE TABLE transactions (
+    id SERIAL PRIMARY KEY,
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    action transaction_action NOT NULL,
+
+    source_amount BIGINT,
+    source_account_id INT REFERENCES bank_accounts(id),
+    source_result_balance BIGINT,
+
+    destination_amount BIGINT,
+    destination_account_id INT REFERENCES bank_accounts(id),
+    destination_result_balance BIGINT
+);
+
+SELECT * 
+FROM transactions AS t
+LEFT JOIN bank_accounts AS sa
+    ON t.source_account_id = sa.id
+LEFT JOIN bank_accounts AS da
+    ON t.destination_account_id = da.id
+LEFT JOIN customers AS sc
+    ON sa.customer_id = sc.id
+LEFT JOIN customers AS dc
+    ON da.customer_id = dc.id;
+
+SELECT * FROM transactions;

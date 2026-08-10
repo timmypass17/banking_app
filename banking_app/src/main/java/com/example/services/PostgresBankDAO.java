@@ -15,6 +15,8 @@ import com.example.models.BankAccount;
 import com.example.models.BankAccountByCustomerResult;
 import com.example.utils.ConnectionUtil;
 import com.example.models.BankAccountType;
+import com.example.models.Transaction;
+import com.example.models.TransactionAction;
 import com.example.models.TransferResult;
 import com.example.models.helpers.BankAccountSummary;
 
@@ -108,12 +110,13 @@ public class PostgresBankDAO implements BankDAO {
     }
 
     @Override
-    public long deposit(int bankAccountId, long amount) throws SQLException {
+    public long deposit(int customerId, int bankAccountId, long amount) throws SQLException {
         try (Connection conn = ConnectionUtil.getConnection()) {
             conn.setAutoCommit(false);
 
             try {
                 long balance = deposit(conn, bankAccountId, amount);
+                createDepositTransaction(conn, bankAccountId, amount, balance);
                 conn.commit();
                 return balance;
             } catch (Exception e) {
@@ -123,13 +126,93 @@ public class PostgresBankDAO implements BankDAO {
         }
     }
 
+    public void createDepositTransaction(Connection conn, int accountId, long amount, long resultBalance) throws SQLException {
+        String query =
+            "INSERT INTO transactions (" +
+                "action, " +
+                "destination_amount, " +
+                "destination_account_id, " +
+                "destination_result_balance " +
+            ") VALUES (?::transaction_action, ?, ?, ?)";
+
+        try (
+            PreparedStatement ps = conn.prepareStatement(query)
+        ) {
+            ps.setString(1, TransactionAction.DEPOSIT.name());
+            ps.setLong(2, amount);
+            ps.setInt(3, accountId);
+            ps.setLong(4, resultBalance);
+
+            ps.executeUpdate();
+        }
+    }
+
+    public void createWithdrawTransaction(Connection conn, int accountId, long amount, long resultBalance) throws SQLException {
+        String query =
+            "INSERT INTO transactions (" +
+                "action, " +
+                "source_amount, " +
+                "source_account_id, " +
+                "source_result_balance " +
+            ") VALUES (?::transaction_action, ?, ?, ?)";
+
+        try (
+            PreparedStatement ps = conn.prepareStatement(query)
+        ) {
+            ps.setString(1, TransactionAction.WITHDRAW.name());
+            ps.setLong(2, amount);
+            ps.setInt(3, accountId);
+            ps.setLong(4, resultBalance);
+
+            ps.executeUpdate();
+        }
+    }
+
+    public void createTransferTransaction(
+        Connection conn,
+        long amount,
+        int sourceAccountId,
+        long sourceResultBalance,
+        int destinationAccountId,
+        long destinationResultBalance
+    ) throws SQLException {
+
+        String query =
+            "INSERT INTO transactions (" +
+                "action, " +
+                "source_amount, " +
+                "source_account_id, " +
+                "source_result_balance, " +
+                "destination_amount, " +
+                "destination_account_id, " +
+                "destination_result_balance " +
+            ") VALUES (?::transaction_action, ?, ?, ?, ?, ?, ?)";
+
+        try (PreparedStatement ps = conn.prepareStatement(query)) {
+            ps.setString(1, TransactionAction.TRANSFER.name());
+
+            // Source
+            ps.setLong(2, amount);
+            ps.setInt(3, sourceAccountId);
+            ps.setLong(4, sourceResultBalance);
+
+            // Destination
+            ps.setLong(5, amount);
+            ps.setInt(6, destinationAccountId);
+            ps.setLong(7, destinationResultBalance);
+
+            ps.executeUpdate();
+        }
+    }
+    
     @Override
     public long withdraw(int bankAccountId, long amount, int customerId) throws SQLException {
         try (Connection conn = ConnectionUtil.getConnection()) {
             conn.setAutoCommit(false);
-
+            
             try {
                 long balance = withdraw(conn, bankAccountId, amount, customerId);
+                createWithdrawTransaction(conn, bankAccountId, amount, balance);
                 conn.commit();
                 return balance;
             } catch (Exception e) {
@@ -142,7 +225,6 @@ public class PostgresBankDAO implements BankDAO {
     private long deposit(Connection conn, int bankAccountId, long amount) throws SQLException {
 
         String depositQuery = "UPDATE bank_accounts SET balance = balance + ? WHERE id = ?";
-
         String balanceQuery = "SELECT balance FROM bank_accounts WHERE id = ?";
 
         try (
@@ -224,6 +306,7 @@ public class PostgresBankDAO implements BankDAO {
             try {
                 long sourceBalance = withdraw(conn, sourceAccountId, amount, customerId);
                 long destinationBalance = deposit(conn, destinationAccountId, amount);
+                // createTransferTransaction(conn, sourceAccountId, amount, sourceBalance, customerId, destinationAccountId, destinationBalance, customerId);
                 conn.commit();
 
                 return new TransferResult(sourceBalance, destinationBalance);
@@ -335,4 +418,113 @@ public class PostgresBankDAO implements BankDAO {
 
         return Optional.empty();
     }
- }
+
+    @Override
+    public List<Transaction> getTransactionHistory(int customerId) throws SQLException {
+        List<Transaction> transactions = new ArrayList<Transaction>();
+
+        String query =
+            "SELECT " +
+                "t.*, " +
+
+                // Source
+                "sc.id AS source_customer_id, " +
+                "sb.id AS source_bank_id, " +
+                "sc.first_name AS source_customer_name, " +
+                "sb.name AS source_bank_name, " +
+
+                // Destination
+                "dc.id AS destination_customer_id, " +
+                "db.id AS destination_bank_id, " +
+                "dc.first_name AS destination_customer_name, " +
+                "db.name AS destination_bank_name " +
+
+            "FROM transactions AS t " +
+
+            "LEFT JOIN bank_accounts AS sa " +
+                "ON t.source_account_id = sa.id " +
+
+            "LEFT JOIN bank_accounts AS da " +
+                "ON t.destination_account_id = da.id " +
+
+            "LEFT JOIN customers AS sc " +
+                "ON sa.customer_id = sc.id " +
+
+            "LEFT JOIN customers AS dc " +
+                "ON da.customer_id = dc.id " +
+
+            "LEFT JOIN banks AS sb " +
+                "ON sa.bank_id = sb.id " +
+
+            "LEFT JOIN banks AS db " +
+                "ON da.bank_id = db.id " +
+
+            "WHERE sc.id = ? OR dc.id = ? " +
+
+            "ORDER BY t.created_at DESC";
+
+        try (
+            Connection conn = ConnectionUtil.getConnection();
+            PreparedStatement ps = conn.prepareStatement(query)
+        ) {
+            ps.setInt(1, customerId);
+            ps.setInt(2, customerId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Transaction transaction = new Transaction(
+                        rs.getInt("id"),
+                        rs.getTimestamp("created_at").toLocalDateTime(),
+                        TransactionAction.valueOf(
+                            rs.getString("action")
+                        ),
+
+                        rs.getObject("source_amount") != null
+                            ? rs.getLong("source_amount")
+                            : null,
+
+                        rs.getObject("source_bank_id") != null
+                            ? rs.getInt("source_bank_id")
+                            : null,
+
+                        rs.getObject("source_result_balance") != null
+                            ? rs.getLong("source_result_balance")
+                            : null,
+
+                        rs.getObject("destination_amount") != null
+                            ? rs.getLong("destination_amount")
+                            : null,
+
+                        rs.getObject("destination_bank_id") != null
+                            ? rs.getInt("destination_bank_id")
+                            : null,
+
+                        rs.getObject("destination_result_balance") != null
+                            ? rs.getLong("destination_result_balance")
+                            : null
+                    );
+
+                    transaction.setSourceCustomerName(
+                        rs.getString("source_customer_name")
+                    );
+
+                    transaction.setSourceBankName(
+                        rs.getString("source_bank_name")
+                    );
+
+                    transaction.setDestinationCustomerName(
+                        rs.getString("destination_customer_name")
+                    );
+
+                    transaction.setDestinationBankName(
+                        rs.getString("destination_bank_name")
+                    );
+
+                    transactions.add(transaction);
+                }
+            }
+        }
+
+        return transactions;
+    }
+}
