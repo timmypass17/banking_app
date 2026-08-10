@@ -204,7 +204,7 @@ public class PostgresBankDAO implements BankDAO {
             ps.executeUpdate();
         }
     }
-    
+
     @Override
     public long withdraw(int bankAccountId, long amount, int customerId) throws SQLException {
         try (Connection conn = ConnectionUtil.getConnection()) {
@@ -306,7 +306,7 @@ public class PostgresBankDAO implements BankDAO {
             try {
                 long sourceBalance = withdraw(conn, sourceAccountId, amount, customerId);
                 long destinationBalance = deposit(conn, destinationAccountId, amount);
-                // createTransferTransaction(conn, sourceAccountId, amount, sourceBalance, customerId, destinationAccountId, destinationBalance, customerId);
+                createTransferTransaction(conn, amount, sourceAccountId, sourceBalance, destinationAccountId, destinationBalance);
                 conn.commit();
 
                 return new TransferResult(sourceBalance, destinationBalance);
@@ -504,16 +504,32 @@ public class PostgresBankDAO implements BankDAO {
                             : null
                     );
 
+                    transaction.setSourceCustomerId(
+                        rs.getInt("source_customer_id")
+                    );
+
                     transaction.setSourceCustomerName(
                         rs.getString("source_customer_name")
+                    );
+
+                    transaction.setSourceCustomerId(
+                        rs.getInt("source_bank_id")
                     );
 
                     transaction.setSourceBankName(
                         rs.getString("source_bank_name")
                     );
 
+                    transaction.setDestinationCustomerId(
+                        rs.getInt("destination_customer_id")
+                    );
+                    
                     transaction.setDestinationCustomerName(
                         rs.getString("destination_customer_name")
+                    );
+
+                    transaction.setDestinationBankId(
+                        rs.getInt("destination_bank_id")
                     );
 
                     transaction.setDestinationBankName(
