@@ -1,19 +1,19 @@
 package com.example.models.helpers;
 
 public class BankAccountSummary {
-    private int bankAccountId;
+    private String bankAccountId;
     private String bankName;
-    private int customerId;
+    private String customerId;
     private String customerName;
 
-    public BankAccountSummary(int bankAccountId, String bankName, int customerId, String customerName) {
+    public BankAccountSummary(String bankAccountId, String bankName, String customerId, String customerName) {
         this.bankAccountId = bankAccountId;
         this.bankName = bankName;
         this.customerId = customerId;
         this.customerName = customerName;
     }
 
-    public int getBankAccountId() {
+    public String getBankAccountId() {
         return bankAccountId;
     }
 
@@ -22,7 +22,7 @@ public class BankAccountSummary {
     }
 
     
-    public int getCustomerId() {
+    public String getCustomerId() {
         return customerId;
     }
 

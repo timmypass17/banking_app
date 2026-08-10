@@ -4,14 +4,14 @@ import java.sql.Date;
 import java.time.LocalDate;
 
 public class Customer {
-    private int id;
+    private String id;
     private String firstName;
     private String lastName;
     private LocalDate dateOfBirth;   // user input string -> convert to date
     private String email;
     private String password;
 
-    public Customer(int id, String firstName, String lastName, LocalDate dateOfBirth, String email, String password) {
+    public Customer(String id, String firstName, String lastName, LocalDate dateOfBirth, String email, String password) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -28,7 +28,7 @@ public class Customer {
         this.password = password;
     }
 
-    public int getId() {
+    public String getId() {
         return id;
     }
 

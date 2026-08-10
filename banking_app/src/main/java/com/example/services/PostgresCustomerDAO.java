@@ -9,6 +9,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.time.LocalDate;
 import java.time.ZoneId;
 
@@ -25,18 +26,19 @@ public class PostgresCustomerDAO implements CustomerDAO {
     @Override
     public Optional<Customer> register(Customer customer) {
         // Create Customer 
-        String query = "INSERT INTO customers (first_name, last_name, date_of_birth, email, password) VALUES (? , ?, ?, ?, ?)";
+        String query = "INSERT INTO customers (id, first_name, last_name, date_of_birth, email, password) VALUES (?, ? , ?, ?, ?, ?)";
 
         try (
             Connection conn = ConnectionUtil.getConnection();
             PreparedStatement ps = conn.prepareStatement(query)
         ) {
-            ps.setString(1, customer.getFirstName());
-            ps.setString(2, customer.getLastName());
-            ps.setObject(3, customer.getDateOfBirth());
-            ps.setString(4, customer.getEmail());
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, customer.getFirstName());
+            ps.setString(3, customer.getLastName());
+            ps.setObject(4, customer.getDateOfBirth());
+            ps.setString(5, customer.getEmail());
             String hashedPassword = BCrypt.withDefaults().hashToString(12, customer.getPassword().toCharArray());
-            ps.setString(5, hashedPassword);
+            ps.setString(6, hashedPassword);
 
             ps.executeUpdate();
             System.out.println("PostgresCustomerDAO: Successfully registered user!");
@@ -60,7 +62,7 @@ public class PostgresCustomerDAO implements CustomerDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    int id = rs.getInt("id");
+                    String id = rs.getString("id");
                     String firstName = rs.getString("first_name");
                     String lastName = rs.getString("last_name");
                     LocalDate dateOfBirth = rs.getObject("date_of_birth", LocalDate.class);
@@ -90,7 +92,7 @@ public class PostgresCustomerDAO implements CustomerDAO {
 
     @Override
     public Optional<Customer> updateProfile(
-            int customerId,
+            String customerId,
             Customer customer
     ) throws SQLException {
 
@@ -113,7 +115,7 @@ public class PostgresCustomerDAO implements CustomerDAO {
                 java.sql.Date.valueOf(customer.getDateOfBirth())
             );
             ps.setString(4, customer.getEmail());
-            ps.setInt(5, customerId);
+            ps.setString(5, customerId);
 
             int rowsAffected = ps.executeUpdate();
 
@@ -126,7 +128,7 @@ public class PostgresCustomerDAO implements CustomerDAO {
     }
 
     @Override
-    public Optional<Customer> updatePassword(int customerId, Customer customer) throws SQLException {
+    public Optional<Customer> updatePassword(String customerId, Customer customer) throws SQLException {
 
         String query =
             "UPDATE customers " +
@@ -139,7 +141,7 @@ public class PostgresCustomerDAO implements CustomerDAO {
         ) {
             String hashedPassword = BCrypt.withDefaults().hashToString(12, customer.getPassword().toCharArray());
             ps.setString(1, hashedPassword);
-            ps.setInt(2, customerId);
+            ps.setString(2, customerId);
 
             int rowsAffected = ps.executeUpdate();
 

@@ -14,12 +14,12 @@ import com.example.models.helpers.BankAccountSummary;
 import com.example.models.Bank;
 
 public interface BankDAO {
-    List<BankAccountByCustomerResult> getAllBankAccountsByCustomerId(int customerId);
-    Optional<BankAccount> getBankAccountById(int bankAccountId) throws SQLException;
-    Optional<Bank> getBankById(int bankId) throws SQLException; // optional, bank may not exist
-    long deposit(int customerId, int bankAccountId, long amount) throws SQLException;
-    long withdraw(int bankAccountId, long amount, int customerId) throws SQLException;
-    TransferResult transferMoney(long amount, int sourceAccountId, int destinationAccountId, int customerId) throws SQLException;
+    List<BankAccountByCustomerResult> getAllBankAccountsByCustomerId(String customerId);
+    Optional<BankAccount> getBankAccountById(String bankAccountId) throws SQLException;
+    Optional<Bank> getBankById(String bankId) throws SQLException; // optional, bank may not exist
+    long deposit(String customerId, String bankAccountId, long amount) throws SQLException;
+    long withdraw(String bankAccountId, long amount, String customerId) throws SQLException;
+    TransferResult transferMoney(long amount, String sourceAccountId, String destinationAccountId, String customerId) throws SQLException;
 
     List<BankAccountSummary> getAllBankAccountsSummary() throws SQLException;
 
@@ -27,8 +27,8 @@ public interface BankDAO {
 
     Optional<BankAccount> createBankAccount(BankAccount bankAccount) throws SQLException;
 
-    List<Transaction> getTransactionHistory(int customerId, TransactionAction action, LocalDateTime startDate, LocalDateTime endDate) throws SQLException; 
+    List<Transaction> getTransactionHistory(String customerId, TransactionAction action, LocalDateTime startDate, LocalDateTime endDate) throws SQLException; 
 
-    boolean closeAccount(int bankAccountId) throws SQLException;
-    boolean reactivateAccount(int bankAccountId) throws SQLException;
+    boolean closeAccount(String bankAccountId) throws SQLException;
+    boolean reactivateAccount(String bankAccountId) throws SQLException;
 }

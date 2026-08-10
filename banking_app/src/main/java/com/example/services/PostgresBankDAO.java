@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import com.example.exceptions.InvalidAmountException;
 import com.example.models.Bank;
@@ -24,7 +25,7 @@ import com.example.models.helpers.BankAccountSummary;
 
 public class PostgresBankDAO implements BankDAO {
     @Override
-    public List<BankAccountByCustomerResult> getAllBankAccountsByCustomerId(int customerId) {
+    public List<BankAccountByCustomerResult> getAllBankAccountsByCustomerId(String customerId) {
         /*
          * This implementation showcases how a Simple Statement
          * Object works - this is used because there is no
@@ -40,13 +41,13 @@ public class PostgresBankDAO implements BankDAO {
             Connection conn = ConnectionUtil.getConnection();
             PreparedStatement ps = conn.prepareStatement(query)
         ){
-            ps.setInt(1, customerId);
+            ps.setString(1, customerId);
 
             try (ResultSet rs = ps.executeQuery();) {
                 while (rs.next()) {
                     bankAccounts.add(
                             new BankAccountByCustomerResult(
-                                rs.getInt("bank_account_id"),
+                                rs.getString("bank_account_id"),
                                 rs.getString("bank_name")
                             )
                     );
@@ -59,22 +60,22 @@ public class PostgresBankDAO implements BankDAO {
     }
     
     @Override
-    public Optional<BankAccount> getBankAccountById(int bankAccountId) throws SQLException {
+    public Optional<BankAccount> getBankAccountById(String bankAccountId) throws SQLException {
         String query = "SELECT * FROM bank_accounts WHERE id = ?";
 
         try (
             Connection conn = ConnectionUtil.getConnection();
             PreparedStatement ps = conn.prepareStatement(query)
         ) {
-            ps.setInt(1, bankAccountId);
+            ps.setString(1, bankAccountId);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(
                         new BankAccount(
-                            rs.getInt("id"),
-                            rs.getInt("customer_id"),
-                            rs.getInt("bank_id"),
+                            rs.getString("id"),
+                            rs.getString("customer_id"),
+                            rs.getString("bank_id"),
                             BankAccountType.valueOf(rs.getString("bank_account_type")),
                             rs.getLong("balance"),
                             rs.getBoolean("is_active")
@@ -88,20 +89,20 @@ public class PostgresBankDAO implements BankDAO {
     }
 
     @Override
-    public Optional<Bank> getBankById(int bankId) throws SQLException {
+    public Optional<Bank> getBankById(String bankId) throws SQLException {
         String query = "SELECT * FROM banks WHERE id = ?";
 
         try (
             Connection conn = ConnectionUtil.getConnection();
             PreparedStatement ps = conn.prepareStatement(query)
         ) {
-            ps.setInt(1, bankId);
+            ps.setString(1, bankId);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(
                         new Bank(
-                            rs.getInt("id"),
+                            rs.getString("id"),
                             rs.getString("name")
                         )
                     );
@@ -113,7 +114,7 @@ public class PostgresBankDAO implements BankDAO {
     }
 
     @Override
-    public long deposit(int customerId, int bankAccountId, long amount) throws SQLException {
+    public long deposit(String customerId, String bankAccountId, long amount) throws SQLException {
         try (Connection conn = ConnectionUtil.getConnection()) {
             conn.setAutoCommit(false);
 
@@ -129,43 +130,47 @@ public class PostgresBankDAO implements BankDAO {
         }
     }
 
-    public void createDepositTransaction(Connection conn, int accountId, long amount, long resultBalance) throws SQLException {
+    public void createDepositTransaction(Connection conn, String accountId, long amount, long resultBalance) throws SQLException {
         String query =
             "INSERT INTO transactions (" +
+                "id, " +
                 "action, " +
                 "destination_amount, " +
                 "destination_account_id, " +
                 "destination_result_balance " +
-            ") VALUES (?::transaction_action, ?, ?, ?)";
+            ") VALUES (?, ?::transaction_action, ?, ?, ?)";
 
         try (
             PreparedStatement ps = conn.prepareStatement(query)
         ) {
-            ps.setString(1, TransactionAction.DEPOSIT.name());
-            ps.setLong(2, amount);
-            ps.setInt(3, accountId);
-            ps.setLong(4, resultBalance);
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, TransactionAction.DEPOSIT.name());
+            ps.setLong(3, amount);
+            ps.setString(4, accountId);
+            ps.setLong(5, resultBalance);
 
             ps.executeUpdate();
         }
     }
 
-    public void createWithdrawTransaction(Connection conn, int accountId, long amount, long resultBalance) throws SQLException {
+    public void createWithdrawTransaction(Connection conn, String accountId, long amount, long resultBalance) throws SQLException {
         String query =
             "INSERT INTO transactions (" +
+                "id, " +
                 "action, " +
                 "source_amount, " +
                 "source_account_id, " +
                 "source_result_balance " +
-            ") VALUES (?::transaction_action, ?, ?, ?)";
+            ") VALUES (?, ?::transaction_action, ?, ?, ?)";
 
         try (
             PreparedStatement ps = conn.prepareStatement(query)
         ) {
-            ps.setString(1, TransactionAction.WITHDRAW.name());
-            ps.setLong(2, amount);
-            ps.setInt(3, accountId);
-            ps.setLong(4, resultBalance);
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, TransactionAction.WITHDRAW.name());
+            ps.setLong(3, amount);
+            ps.setString(4, accountId);
+            ps.setLong(5, resultBalance);
 
             ps.executeUpdate();
         }
@@ -174,14 +179,15 @@ public class PostgresBankDAO implements BankDAO {
     public void createTransferTransaction(
         Connection conn,
         long amount,
-        int sourceAccountId,
+        String sourceAccountId,
         long sourceResultBalance,
-        int destinationAccountId,
+        String destinationAccountId,
         long destinationResultBalance
     ) throws SQLException {
 
         String query =
             "INSERT INTO transactions (" +
+                "id, " +
                 "action, " +
                 "source_amount, " +
                 "source_account_id, " +
@@ -189,27 +195,28 @@ public class PostgresBankDAO implements BankDAO {
                 "destination_amount, " +
                 "destination_account_id, " +
                 "destination_result_balance " +
-            ") VALUES (?::transaction_action, ?, ?, ?, ?, ?, ?)";
+            ") VALUES (?, ?::transaction_action, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement ps = conn.prepareStatement(query)) {
-            ps.setString(1, TransactionAction.TRANSFER.name());
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, TransactionAction.TRANSFER.name());
 
             // Source
-            ps.setLong(2, amount);
-            ps.setInt(3, sourceAccountId);
-            ps.setLong(4, sourceResultBalance);
+            ps.setLong(3, amount);
+            ps.setString(4, sourceAccountId);
+            ps.setLong(5, sourceResultBalance);
 
             // Destination
-            ps.setLong(5, amount);
-            ps.setInt(6, destinationAccountId);
-            ps.setLong(7, destinationResultBalance);
+            ps.setLong(6, amount);
+            ps.setString(7, destinationAccountId);
+            ps.setLong(8, destinationResultBalance);
 
             ps.executeUpdate();
         }
     }
 
     @Override
-    public long withdraw(int bankAccountId, long amount, int customerId) throws SQLException {
+    public long withdraw(String bankAccountId, long amount, String customerId) throws SQLException {
         try (Connection conn = ConnectionUtil.getConnection()) {
             conn.setAutoCommit(false);
             
@@ -225,7 +232,7 @@ public class PostgresBankDAO implements BankDAO {
         }
     }
 
-    private long deposit(Connection conn, int bankAccountId, long amount) throws SQLException {
+    private long deposit(Connection conn, String bankAccountId, long amount) throws SQLException {
 
         String depositQuery = "UPDATE bank_accounts SET balance = balance + ? WHERE id = ?";
         String balanceQuery = "SELECT balance FROM bank_accounts WHERE id = ?";
@@ -235,7 +242,7 @@ public class PostgresBankDAO implements BankDAO {
             PreparedStatement balancePs = conn.prepareStatement(balanceQuery)
         ) {
             depositPs.setLong(1, amount);
-            depositPs.setInt(2, bankAccountId);
+            depositPs.setString(2, bankAccountId);
 
             int rowsAffected = depositPs.executeUpdate();
 
@@ -245,7 +252,7 @@ public class PostgresBankDAO implements BankDAO {
                 );
             }
 
-            balancePs.setInt(1, bankAccountId);
+            balancePs.setString(1, bankAccountId);
 
             try (ResultSet rs = balancePs.executeQuery()) {
                 if (rs.next()) {
@@ -258,7 +265,7 @@ public class PostgresBankDAO implements BankDAO {
     }
 
     // Only source account needs ownership check for withdraw
-    private long withdraw(Connection conn, int bankAccountId, long amount, int customerId) throws SQLException {
+    private long withdraw(Connection conn, String bankAccountId, long amount, String customerId) throws SQLException {
 
         String withdrawQuery =
             "UPDATE bank_accounts " +
@@ -275,8 +282,8 @@ public class PostgresBankDAO implements BankDAO {
             PreparedStatement balancePs = conn.prepareStatement(balanceQuery)
         ) {
             withdrawPs.setLong(1, amount);
-            withdrawPs.setInt(2, bankAccountId);
-            withdrawPs.setInt(3, customerId);
+            withdrawPs.setString(2, bankAccountId);
+            withdrawPs.setString(3, customerId);
             withdrawPs.setLong(4, amount);
 
             int rowsAffected = withdrawPs.executeUpdate();
@@ -288,7 +295,7 @@ public class PostgresBankDAO implements BankDAO {
                 );
             }
 
-            balancePs.setInt(1, bankAccountId);
+            balancePs.setString(1, bankAccountId);
 
             try (ResultSet rs = balancePs.executeQuery()) {
                 if (rs.next()) {
@@ -301,7 +308,7 @@ public class PostgresBankDAO implements BankDAO {
     }
 
     @Override
-    public TransferResult transferMoney(long amount, int sourceAccountId, int destinationAccountId, int customerId) throws SQLException {
+    public TransferResult transferMoney(long amount, String sourceAccountId, String destinationAccountId, String customerId) throws SQLException {
 
         try (Connection conn = ConnectionUtil.getConnection()) {
             conn.setAutoCommit(false);
@@ -340,9 +347,9 @@ public class PostgresBankDAO implements BankDAO {
                 while (rs.next()) {
                     bankAccounts.add(
                         new BankAccountSummary(
-                            rs.getInt("bank_account_id"),
+                            rs.getString("bank_account_id"),
                             rs.getString("bank_name"),
-                            rs.getInt("customer_id"),
+                            rs.getString("customer_id"),
                             rs.getString("customer_name")
                         )
                     );
@@ -367,7 +374,7 @@ public class PostgresBankDAO implements BankDAO {
                 while (rs.next()) {
                     banks.add(
                         new Bank(
-                            rs.getInt("id"),
+                            rs.getString("id"),
                             rs.getString("name")
                         )
                     );
@@ -384,17 +391,19 @@ public class PostgresBankDAO implements BankDAO {
 
         String query =
             "INSERT INTO bank_accounts " +
-            "(customer_id, bank_id, bank_account_type, balance) " +
-            "VALUES (?, ?, ?::bank_account_type, ?)";
+            "(id, customer_id, bank_id, bank_account_type, balance) " +
+            "VALUES (?, ?, ?, ?::bank_account_type, ?)";
 
         try (
             Connection conn = ConnectionUtil.getConnection();
-            PreparedStatement ps = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
+            PreparedStatement ps = conn.prepareStatement(query)
         ) {
-            ps.setInt(1, bankAccount.getCustomerId());
-            ps.setInt(2, bankAccount.getBankId());
-            ps.setString(3, bankAccount.getAccountType().name());
-            ps.setLong(4, bankAccount.getBalance());
+            String id = UUID.randomUUID().toString();
+            ps.setString(1, id);
+            ps.setString(2, bankAccount.getCustomerId());
+            ps.setString(3, bankAccount.getBankId());
+            ps.setString(4, bankAccount.getAccountType().name());
+            ps.setLong(5, bankAccount.getBalance());
 
             int rowsAffected = ps.executeUpdate();
 
@@ -404,11 +413,9 @@ public class PostgresBankDAO implements BankDAO {
 
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) {
-                    int generatedId = rs.getInt(1);
-
                     return Optional.of(
                         new BankAccount(
-                            generatedId,
+                            id,
                             bankAccount.getCustomerId(),
                             bankAccount.getBankId(),
                             bankAccount.getAccountType(),
@@ -425,7 +432,7 @@ public class PostgresBankDAO implements BankDAO {
 
     @Override
     public List<Transaction> getTransactionHistory(
-        int customerId,
+        String customerId,
         TransactionAction action,
         LocalDateTime startDate,
         LocalDateTime endDate
@@ -511,7 +518,7 @@ public class PostgresBankDAO implements BankDAO {
                 while (rs.next()) {
 
                     Transaction transaction = new Transaction(
-                        rs.getInt("id"),
+                        rs.getString("id"),
 
                         rs.getTimestamp("created_at")
                             .toLocalDateTime(),
@@ -527,7 +534,7 @@ public class PostgresBankDAO implements BankDAO {
 
                         // Source account ID
                         rs.getObject("source_account_id") != null
-                            ? rs.getInt("source_account_id")
+                            ? rs.getString("source_account_id")
                             : null,
 
                         // Source result balance
@@ -542,7 +549,7 @@ public class PostgresBankDAO implements BankDAO {
 
                         // Destination account ID
                         rs.getObject("destination_account_id") != null
-                            ? rs.getInt("destination_account_id")
+                            ? rs.getString("destination_account_id")
                             : null,
 
                         // Destination result balance
@@ -554,7 +561,7 @@ public class PostgresBankDAO implements BankDAO {
                     // Source customer
                     if (rs.getObject("source_customer_id") != null) {
                         transaction.setSourceCustomerId(
-                            rs.getInt("source_customer_id")
+                            rs.getString("source_customer_id")
                         );
                     }
 
@@ -565,7 +572,7 @@ public class PostgresBankDAO implements BankDAO {
                     // Source bank
                     if (rs.getObject("source_bank_id") != null) {
                         transaction.setSourceBankId(
-                            rs.getInt("source_bank_id")
+                            rs.getString("source_bank_id")
                         );
                     }
 
@@ -576,7 +583,7 @@ public class PostgresBankDAO implements BankDAO {
                     // Destination customer
                     if (rs.getObject("destination_customer_id") != null) {
                         transaction.setDestinationCustomerId(
-                            rs.getInt("destination_customer_id")
+                            rs.getString("destination_customer_id")
                         );
                     }
 
@@ -587,7 +594,7 @@ public class PostgresBankDAO implements BankDAO {
                     // Destination bank
                     if (rs.getObject("destination_bank_id") != null) {
                         transaction.setDestinationBankId(
-                            rs.getInt("destination_bank_id")
+                            rs.getString("destination_bank_id")
                         );
                     }
 
@@ -604,7 +611,7 @@ public class PostgresBankDAO implements BankDAO {
     }
 
     @Override
-    public boolean closeAccount(int bankAccountId) throws SQLException {
+    public boolean closeAccount(String bankAccountId) throws SQLException {
         String query =
             "UPDATE bank_accounts " +
             "SET is_active = FALSE " +
@@ -615,14 +622,14 @@ public class PostgresBankDAO implements BankDAO {
             Connection conn = ConnectionUtil.getConnection();
             PreparedStatement ps = conn.prepareStatement(query)
         ) {
-            ps.setInt(1, bankAccountId);
+            ps.setString(1, bankAccountId);
 
             return ps.executeUpdate() > 0;
         }
     }
 
     @Override
-    public boolean reactivateAccount(int bankAccountId) throws SQLException {
+    public boolean reactivateAccount(String bankAccountId) throws SQLException {
         String query =
             "UPDATE bank_accounts " +
             "SET is_active = TRUE " +
@@ -633,7 +640,7 @@ public class PostgresBankDAO implements BankDAO {
             Connection conn = ConnectionUtil.getConnection();
             PreparedStatement ps = conn.prepareStatement(query)
         ) {
-            ps.setInt(1, bankAccountId);
+            ps.setString(1, bankAccountId);
 
             return ps.executeUpdate() > 0;
         }
