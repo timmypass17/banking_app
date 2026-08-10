@@ -13,6 +13,7 @@ import com.example.models.TransferResult;
 import com.example.models.helpers.BankAccountSummary;
 import com.example.models.Bank;
 
+// Represents database operations
 public interface BankDAO {
     long deposit(String customerId, String bankAccountId, long amount) throws SQLException;
     long withdraw(String bankAccountId, long amount, String customerId) throws SQLException;
@@ -21,11 +22,9 @@ public interface BankDAO {
     List<Transaction> getTransactionHistory(String customerId, TransactionAction action, LocalDateTime startDate, LocalDateTime endDate) throws SQLException; 
     Optional<BankAccount> getBankAccountById(String bankAccountId) throws SQLException;
     Optional<Bank> getBankById(String bankId) throws SQLException;
-    
     Optional<BankAccount> createBankAccount(BankAccount bankAccount) throws SQLException;
     boolean closeAccount(String bankAccountId) throws SQLException;
     boolean reactivateAccount(String bankAccountId) throws SQLException;
-
     List<BankAccountByCustomerResult> getAllBankAccountsByCustomerId(String customerId);
     List<BankAccountSummary> getAllBankAccountsSummary() throws SQLException;
 }

@@ -72,7 +72,7 @@ public class PostgresCustomerDAO implements CustomerDAO {
                     BCrypt.Result result = BCrypt.verifyer().verify(password.toCharArray(), passwordRes);
                     
                     if (result.verified) {
-                        System.out.println("Login successfully!");
+                        System.out.println("Login successfully!\n");
                         Customer customer = new Customer(id, firstName, lastName, dateOfBirth, emailRes, passwordRes);
                         return Optional.of(customer);
                     } else {
