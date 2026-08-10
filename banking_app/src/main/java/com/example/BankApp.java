@@ -296,7 +296,7 @@ public class BankApp {
                 );
                 break;
             case TRANSFER:
-                boolean isSource = transaction.getSourceCustomerId() == customerId;
+                boolean isSource = transaction.getSourceCustomerId().equals(customerId);
 
                 if (isSource) {
                     System.out.printf(
@@ -656,7 +656,6 @@ public class BankApp {
             String option = scanner.nextLine();
             int accountIndex = Integer.parseInt(option) - 1;
 
-        
             // TODO: implement 5 features
             if (option.equals("1")) {
                 handleDeposit(bank.getName(), bankAccountId);
@@ -732,7 +731,7 @@ public class BankApp {
         StringBuilder sb = new StringBuilder();
         // Fetch all accounts from user
         List<BankAccountByCustomerResult> bankAccountResult = bankDao.getAllBankAccountsByCustomerId(customer.get().getId());
-        bankAccountResult.removeIf(account -> account.getBankAccountId() == sourceAccountId); //
+        bankAccountResult.removeIf(account -> account.getBankAccountId().equals(sourceAccountId));
 
         for (int i = 0; i < bankAccountResult.size(); i++) {
             BankAccountByCustomerResult account = bankAccountResult.get(i);
@@ -793,7 +792,7 @@ public class BankApp {
         String currentCustomerId = customer.get().getId();
 
         accounts.removeIf(
-            account -> account.getCustomerId() == currentCustomerId
+            account -> account.getCustomerId().equals(currentCustomerId)
         );
 
         // Display available destination accounts

@@ -1,5 +1,7 @@
 package com.example.models;
 
+import org.bson.codecs.pojo.annotations.BsonIgnore;
+
 public class BankAccount {
     private String id;
     private String customerId;
@@ -7,6 +9,10 @@ public class BankAccount {
     private BankAccountType accountType;
     private long balance;
     private boolean isActive;
+
+    public BankAccount() {
+
+    }
 
     public BankAccount(String id, String customerId, String bankId, BankAccountType accountType, long balance, boolean isActive) {
         this.id = id;
@@ -65,10 +71,18 @@ public class BankAccount {
         this.accountType = accountType;
     }
 
+    // POJO mapping
+    public void setBalance(long balance) {
+        this.balance = balance;
+    }
+
     public long getBalance() {
         return balance;
     }
 
+    // The MongoDB Automatic POJO Codec sees JavaBean-style getters and assumes they represent persistent properties.
+    // Tell MongoDB that balanceFormatted should not be persisted
+    @BsonIgnore
     public String getBalanceFormatted() {
         return String.format("$%.2f", balance / 100.0);
     }

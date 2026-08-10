@@ -3,13 +3,19 @@ package com.example.models;
 import java.sql.Date;
 import java.time.LocalDate;
 
+import org.bson.codecs.pojo.annotations.BsonId;
+
 public class Customer {
+    @BsonId
     private String id;
     private String firstName;
     private String lastName;
     private LocalDate dateOfBirth;   // user input string -> convert to date
     private String email;
     private String password;
+
+    public Customer() {
+    }
 
     public Customer(String id, String firstName, String lastName, LocalDate dateOfBirth, String email, String password) {
         this.id = id;
@@ -30,6 +36,10 @@ public class Customer {
 
     public String getId() {
         return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getFirstName() {

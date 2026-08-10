@@ -27,6 +27,8 @@ public class Transaction {
     private String destinationCustomerName;
     private String destinationBankName;
 
+    public Transaction() {}
+
     public Transaction(
         String id,
         LocalDateTime createdAt,
