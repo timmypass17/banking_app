@@ -74,7 +74,7 @@ public class MongoCustomerDAO implements CustomerDAO {
                         .verify(password.toCharArray(), customer.getPassword());
 
         if (result.verified) {
-            System.out.println("Login successfully!");
+            System.out.println("Login successfully!\n");
             return Optional.of(customer);
         }
 

@@ -21,8 +21,8 @@ import com.example.models.Transaction;
 import com.example.models.TransactionAction;
 import com.example.models.TransferResult;
 import com.example.models.helpers.BankAccountSummary;
-import com.example.services.BankDAO;
-import com.example.services.CustomerDAO;
+import com.example.services.BankService;
+import com.example.services.CustomerService;
 import com.example.utils.ConnectionUtil;
 
 /**
@@ -34,13 +34,13 @@ public class BankApp {
     private Optional<Customer> customer = Optional.empty();
 
     private Scanner scanner;
-    private CustomerDAO customerDao;
-    private BankDAO bankDao;
+    private CustomerService customerService;
+    private BankService bankService;
 
-    public BankApp(Scanner scanner, CustomerDAO customerDao, BankDAO bankDao) {
+    public BankApp(Scanner scanner, CustomerService customerService, BankService bankService) {
         this.scanner = scanner;
-        this.customerDao = customerDao;
-        this.bankDao = bankDao;
+        this.customerService = customerService;
+        this.bankService = bankService;
     }
 
     public void start()
@@ -64,6 +64,7 @@ public class BankApp {
         System.out.println(message);
         System.out.print("Please enter command: ");
         String option = scanner.nextLine();
+        System.out.println();
 
         if (option.equals("1")) {
             handleLogin();
@@ -81,7 +82,7 @@ public class BankApp {
         System.out.print("Please enter pasword: ");
         password = scanner.nextLine();
 
-        Optional<Customer> optCustomer = customerDao.login(email, password);
+        Optional<Customer> optCustomer = customerService.login(email, password);
         if (optCustomer.isPresent()) {
             customer = optCustomer;
         } 
@@ -116,7 +117,7 @@ public class BankApp {
         System.out.print("Please enter pasword: ");
         password = scanner.nextLine();
         Customer newCustomer = new Customer(firstName, lastName, dateOfBirth, email, password);
-        Optional<Customer> optCustomer = customerDao.register(newCustomer);
+        Optional<Customer> optCustomer = customerService.register(newCustomer);
     }
 
     // Welcome <user.name>!
@@ -130,10 +131,11 @@ public class BankApp {
             + "1. View all accounts\n"
             + "2. Open Bank account\n"
             + "3. View transaction history\n"
-            + "4. Update profile";
+            + "4. Update profile\n";
         System.out.println(message);
         System.out.print("Please enter command: ");
         String option = scanner.nextLine();
+        System.out.println();
 
         if (option.equals("1")) {
             handleViewAllAccounts();
@@ -165,7 +167,7 @@ public class BankApp {
 
         try {
             String customerId = customer.get().getId();
-            List<Transaction> transactions = bankDao.getTransactionHistory(customerId, null, null, null);
+            List<Transaction> transactions = bankService.getTransactionHistory(customerId, null, null, null);
 
             for (Transaction transaction : transactions) {
                 printTransaction(transaction, customerId);
@@ -182,6 +184,7 @@ public class BankApp {
         System.out.println(message);
         System.out.print("Please enter command: ");
         String option = scanner.nextLine();
+        System.out.println();
 
         if (option.equals("1")) {
             handleTransactionHistoryByType();
@@ -201,6 +204,7 @@ public class BankApp {
         System.out.println(message);
         System.out.print("Please enter command: ");
         String option = scanner.nextLine();
+        System.out.println();
 
         if (option.equals("1")) {
             handleTransactionHistoryByType(TransactionAction.DEPOSIT, null, null);
@@ -249,7 +253,7 @@ public class BankApp {
 
         try {
             String customerId = customer.get().getId();
-            List<Transaction> transactions = bankDao.getTransactionHistory(customerId, action, starTime, endTime);
+            List<Transaction> transactions = bankService.getTransactionHistory(customerId, action, starTime, endTime);
 
             for (Transaction transaction : transactions) {
                 printTransaction(transaction, customerId);
@@ -353,6 +357,7 @@ public class BankApp {
         System.out.println(message);
         System.out.print("Please enter command: ");
         String option = scanner.nextLine();
+        System.out.println();
 
         if (option.equals("1")) {
             handleUpdateFirstName();
@@ -385,7 +390,7 @@ public class BankApp {
         );
 
         try {
-            if (customerDao.updateProfile(currentCustomer.getId(), newProfile).isPresent()) {
+            if (customerService.updateProfile(currentCustomer.getId(), newProfile).isPresent()) {
                 System.out.println("Successfully updated profile!");
                 currentCustomer.setFirstName(firstName);
             }
@@ -410,7 +415,7 @@ public class BankApp {
         );
 
         try {
-            if (customerDao.updateProfile(currentCustomer.getId(), newProfile).isPresent()) {
+            if (customerService.updateProfile(currentCustomer.getId(), newProfile).isPresent()) {
                 System.out.println("Successfully updated profile!");
                 currentCustomer.setLastName(lastName);
             }
@@ -444,7 +449,7 @@ public class BankApp {
         );
 
         try {
-            if (customerDao.updateProfile(currentCustomer.getId(), newProfile).isPresent()) {
+            if (customerService.updateProfile(currentCustomer.getId(), newProfile).isPresent()) {
                 System.out.println("Successfully updated profile!");
                 currentCustomer.setDateOfBirth(dateOfBirth);
             }
@@ -469,7 +474,7 @@ public class BankApp {
         );
 
         try {
-            if (customerDao.updateProfile(currentCustomer.getId(), newProfile).isPresent()) {
+            if (customerService.updateProfile(currentCustomer.getId(), newProfile).isPresent()) {
                 System.out.println("Successfully updated profile!");
                 currentCustomer.setEmail(email);
             }
@@ -494,7 +499,7 @@ public class BankApp {
         );
 
         try {
-            Optional<Customer> updatedProfile = customerDao.updatePassword(currentCustomer.getId(), newProfile);
+            Optional<Customer> updatedProfile = customerService.updatePassword(currentCustomer.getId(), newProfile);
             if (updatedProfile.isPresent()) {
                 System.out.println("Successfully updated password!");
                 currentCustomer.setPassword(updatedProfile.get().getPassword());
@@ -510,12 +515,12 @@ public class BankApp {
     // 2. Chase (#2)
     public void handleViewAllAccounts() {
         String message = 
-            "My bank accounts\n";
+            "My bank accounts:";
         System.out.println(message);
 
         StringBuilder sb = new StringBuilder();
         // Fetch all accounts from user
-        List<BankAccountByCustomerResult> bankAccountResult = bankDao.getAllBankAccountsByCustomerId(customer.get().getId());
+        List<BankAccountByCustomerResult> bankAccountResult = bankService.getAllBankAccountsByCustomerId(customer.get().getId());
         for (int i = 0; i < bankAccountResult.size(); i++) {
             BankAccountByCustomerResult account = bankAccountResult.get(i);
             sb.append(String.format("%d. %s (#%s)\n", i + 1, account.getBankName(), account.getBankAccountId()));
@@ -532,7 +537,8 @@ public class BankApp {
         System.out.print("Please enter command: ");
         String option = scanner.nextLine();
         int accountIndex = Integer.parseInt(option) - 1;
-        
+        System.out.println();
+
         String selectedAccountId = bankAccountResult.get(accountIndex).getBankAccountId();
         handleBankAccountDetail(selectedAccountId);
     }
@@ -552,7 +558,7 @@ public class BankApp {
         List<Bank> banks;
 
         try {
-            banks = bankDao.getAllBanks();
+            banks = bankService.getAllBanks();
         } catch (SQLException e) {
             System.out.println("Database error: " + e.getMessage());
             return;
@@ -567,6 +573,7 @@ public class BankApp {
 
         System.out.print("Please enter command: ");
         int bankChoice = Integer.parseInt(scanner.nextLine());
+        System.out.println();
 
         if (bankChoice < 1 || bankChoice > banks.size()) {
             System.out.println("Invalid bank selection.");
@@ -598,7 +605,7 @@ public class BankApp {
 
         // Create account
         try {
-            bankDao.createBankAccount(new BankAccount(customer.get().getId(), selectedBank.getId(), accountType, 0, true));
+            bankService.createBankAccount(new BankAccount(customer.get().getId(), selectedBank.getId(), accountType, 0, true));
             System.out.printf(
                 "You successfully created %s account for %s!%n",
                 accountType.toString().toLowerCase(),
@@ -624,14 +631,14 @@ public class BankApp {
             BankAccount account = null;
             Bank bank = null;
 
-            Optional<BankAccount> optAccount = bankDao.getBankAccountById(bankAccountId);
+            Optional<BankAccount> optAccount = bankService.getBankAccountById(bankAccountId);
             if (!optAccount.isPresent()) {
                 System.out.printf("Bank account with id %s not found", bankAccountId);
                 return;
             }
 
             account = optAccount.get();
-            Optional<Bank> optBank = bankDao.getBankById(account.getBankId());  // optimization: could've made one query using join
+            Optional<Bank> optBank = bankService.getBankById(account.getBankId());  // optimization: could've made one query using join
 
             if (!optBank.isPresent()) {
                 System.out.printf("Bank with id %s not found", bankAccountId);
@@ -655,8 +662,8 @@ public class BankApp {
             System.out.print("Please enter command: ");
             String option = scanner.nextLine();
             int accountIndex = Integer.parseInt(option) - 1;
+            System.out.println();
 
-            // TODO: implement 5 features
             if (option.equals("1")) {
                 handleDeposit(bank.getName(), bankAccountId);
             } else if (option.equals("2")) {
@@ -680,9 +687,9 @@ public class BankApp {
     public void handleCloseReactiveAccount(BankAccount account) {
         try {
             if (account.getIsActive()) {
-                bankDao.closeAccount(account.getId());
+                bankService.closeAccount(account.getId());
             } else {
-                bankDao.reactivateAccount(account.getId());
+                bankService.reactivateAccount(account.getId());
             }
         } catch (SQLException e) {
             System.out.println(e.getMessage());
@@ -704,10 +711,12 @@ public class BankApp {
             .longValueExact();
         
         try {
-            long newBalance = bankDao.deposit(customer.get().getId(), bankAccountId, amount);
+            long newBalance = bankService.deposit(customer.get().getId(), bankAccountId, amount);
             System.out.printf("Successfully deposited $%s to \"%s\".%n", dollars, bankName);
             System.out.printf("New Balance: $%.2f%n", newBalance / 100.0);
-        } catch (SQLException e) {
+        } catch(InvalidAmountException e) {
+            System.out.println(e.getMessage());
+        }  catch (SQLException e) {
             // dao knows database fails, but service knows what to do about it so propagate it
             System.out.printf("Database error, failed to deposit into %s: %s%n", bankName, e.getMessage());
         }
@@ -730,7 +739,7 @@ public class BankApp {
 
         StringBuilder sb = new StringBuilder();
         // Fetch all accounts from user
-        List<BankAccountByCustomerResult> bankAccountResult = bankDao.getAllBankAccountsByCustomerId(customer.get().getId());
+        List<BankAccountByCustomerResult> bankAccountResult = bankService.getAllBankAccountsByCustomerId(customer.get().getId());
         bankAccountResult.removeIf(account -> account.getBankAccountId().equals(sourceAccountId));
 
         for (int i = 0; i < bankAccountResult.size(); i++) {
@@ -743,7 +752,8 @@ public class BankApp {
         System.out.print("Please enter command: ");
         String option = scanner.nextLine();
         int accountIndex = Integer.parseInt(option) - 1;
-        
+        System.out.println();
+
         String destinationAccountId = bankAccountResult.get(accountIndex).getBankAccountId();
 
         System.out.print("Please enter amount: ");
@@ -754,7 +764,7 @@ public class BankApp {
             .longValueExact();
 
         try {
-            TransferResult result = bankDao.transferMoney(amount, sourceAccountId, destinationAccountId, customer.get().getId());
+            TransferResult result = bankService.transferMoney(amount, sourceAccountId, destinationAccountId, customer.get().getId());
             System.out.printf("Successfully transfered $%s to %s.%n", dollars, bankAccountResult.get(accountIndex).getBankName());
             System.out.printf("%s New Balance: $%.2f%n", bank.getName(), result.getSourceNewBalance() / 100.0);
             System.out.printf("%s New Balance: $%.2f%n", bankAccountResult.get(accountIndex).getBankName(), result.getDestinationNewBalance() / 100.0);
@@ -779,7 +789,7 @@ public class BankApp {
         List<BankAccountSummary> accounts;
 
         try {
-            accounts = bankDao.getAllBankAccountsSummary();
+            accounts = bankService.getAllBankAccountsSummary();
         } catch (SQLException e) {
             System.out.printf(
                 "Database error, failed to retrieve accounts: %s%n",
@@ -810,6 +820,7 @@ public class BankApp {
 
         System.out.print("Please enter command: ");
         int accountIndex = Integer.parseInt(scanner.nextLine()) - 1;
+        System.out.println();
 
         if (accountIndex < 0 || accountIndex >= accounts.size()) {
             System.out.println("Invalid account selection.");
@@ -841,7 +852,7 @@ public class BankApp {
         }
 
         try {
-            TransferResult result = bankDao.transferMoney(
+            TransferResult result = bankService.transferMoney(
                 amount,
                 sourceAccountId,
                 destinationAccount.getBankAccountId(),
@@ -899,7 +910,7 @@ public class BankApp {
                 throw new InvalidAmountException("Withdrawal amount must be positive");
             }
 
-            long newBalance = bankDao.withdraw(bankAccountId, amount, customer.get().getId());
+            long newBalance = bankService.withdraw(bankAccountId, amount, customer.get().getId());
             System.out.printf("Successfully withdrew $%s to \"%s\".%n", dollars, bankName);
             System.out.printf("New Balance: $%.2f%n", newBalance / 100.0);
         } catch (InvalidAmountException e) {
