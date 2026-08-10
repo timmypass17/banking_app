@@ -5,6 +5,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -422,10 +424,16 @@ public class PostgresBankDAO implements BankDAO {
     }
 
     @Override
-    public List<Transaction> getTransactionHistory(int customerId) throws SQLException {
+    public List<Transaction> getTransactionHistory(
+        int customerId,
+        TransactionAction action,
+        LocalDateTime startDate,
+        LocalDateTime endDate
+    ) throws SQLException {
+
         List<Transaction> transactions = new ArrayList<Transaction>();
 
-        String query =
+        StringBuilder query = new StringBuilder(
             "SELECT " +
                 "t.*, " +
 
@@ -461,78 +469,127 @@ public class PostgresBankDAO implements BankDAO {
             "LEFT JOIN banks AS db " +
                 "ON da.bank_id = db.id " +
 
-            "WHERE sc.id = ? OR dc.id = ? " +
+            "WHERE (sc.id = ? OR dc.id = ?)"
+        );
 
-            "ORDER BY t.created_at DESC";
+        List<Object> params = new ArrayList<Object>();
+
+        // Customer ID
+        params.add(customerId);
+        params.add(customerId);
+
+        // Filter by transaction type
+        if (action != null) {
+            query.append(" AND t.action = ?::transaction_action");
+            params.add(action.name());
+        }
+
+        // Filter by start date
+        if (startDate != null) {
+            query.append(" AND t.created_at >= ?");
+            params.add(Timestamp.valueOf(startDate));
+        }
+
+        // Filter by end date
+        if (endDate != null) {
+            query.append(" AND t.created_at <= ?");
+            params.add(Timestamp.valueOf(endDate));
+        }
+
+        query.append(" ORDER BY t.created_at DESC");
 
         try (
             Connection conn = ConnectionUtil.getConnection();
-            PreparedStatement ps = conn.prepareStatement(query)
+            PreparedStatement ps = conn.prepareStatement(query.toString())
         ) {
-            ps.setInt(1, customerId);
-            ps.setInt(2, customerId);
+            // Set parameters
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
+
                     Transaction transaction = new Transaction(
                         rs.getInt("id"),
-                        rs.getTimestamp("created_at").toLocalDateTime(),
+
+                        rs.getTimestamp("created_at")
+                            .toLocalDateTime(),
+
                         TransactionAction.valueOf(
                             rs.getString("action")
                         ),
 
+                        // Source amount
                         rs.getObject("source_amount") != null
                             ? rs.getLong("source_amount")
                             : null,
 
-                        rs.getObject("source_bank_id") != null
-                            ? rs.getInt("source_bank_id")
+                        // Source account ID
+                        rs.getObject("source_account_id") != null
+                            ? rs.getInt("source_account_id")
                             : null,
 
+                        // Source result balance
                         rs.getObject("source_result_balance") != null
                             ? rs.getLong("source_result_balance")
                             : null,
 
+                        // Destination amount
                         rs.getObject("destination_amount") != null
                             ? rs.getLong("destination_amount")
                             : null,
 
-                        rs.getObject("destination_bank_id") != null
-                            ? rs.getInt("destination_bank_id")
+                        // Destination account ID
+                        rs.getObject("destination_account_id") != null
+                            ? rs.getInt("destination_account_id")
                             : null,
 
+                        // Destination result balance
                         rs.getObject("destination_result_balance") != null
                             ? rs.getLong("destination_result_balance")
                             : null
                     );
 
-                    transaction.setSourceCustomerId(
-                        rs.getInt("source_customer_id")
-                    );
+                    // Source customer
+                    if (rs.getObject("source_customer_id") != null) {
+                        transaction.setSourceCustomerId(
+                            rs.getInt("source_customer_id")
+                        );
+                    }
 
                     transaction.setSourceCustomerName(
                         rs.getString("source_customer_name")
                     );
 
-                    transaction.setSourceCustomerId(
-                        rs.getInt("source_bank_id")
-                    );
+                    // Source bank
+                    if (rs.getObject("source_bank_id") != null) {
+                        transaction.setSourceBankId(
+                            rs.getInt("source_bank_id")
+                        );
+                    }
 
                     transaction.setSourceBankName(
                         rs.getString("source_bank_name")
                     );
 
-                    transaction.setDestinationCustomerId(
-                        rs.getInt("destination_customer_id")
-                    );
-                    
+                    // Destination customer
+                    if (rs.getObject("destination_customer_id") != null) {
+                        transaction.setDestinationCustomerId(
+                            rs.getInt("destination_customer_id")
+                        );
+                    }
+
                     transaction.setDestinationCustomerName(
                         rs.getString("destination_customer_name")
                     );
 
-                    transaction.setDestinationBankId(
-                        rs.getInt("destination_bank_id")
-                    );
+                    // Destination bank
+                    if (rs.getObject("destination_bank_id") != null) {
+                        transaction.setDestinationBankId(
+                            rs.getInt("destination_bank_id")
+                        );
+                    }
 
                     transaction.setDestinationBankName(
                         rs.getString("destination_bank_name")
@@ -545,7 +602,7 @@ public class PostgresBankDAO implements BankDAO {
 
         return transactions;
     }
-    
+
     @Override
     public boolean closeAccount(int bankAccountId) throws SQLException {
         String query =

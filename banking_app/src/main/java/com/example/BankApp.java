@@ -3,6 +3,8 @@ package com.example;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -16,6 +18,7 @@ import com.example.models.BankAccountByCustomerResult;
 import com.example.models.BankAccountType;
 import com.example.models.Customer;
 import com.example.models.Transaction;
+import com.example.models.TransactionAction;
 import com.example.models.TransferResult;
 import com.example.models.helpers.BankAccountSummary;
 import com.example.services.BankDAO;
@@ -162,7 +165,7 @@ public class BankApp {
 
         try {
             int customerId = customer.get().getId();
-            List<Transaction> transactions = bankDao.getTransactionHistory(customerId);
+            List<Transaction> transactions = bankDao.getTransactionHistory(customerId, null, null, null);
 
             for (Transaction transaction : transactions) {
                 printTransaction(transaction, customerId);
@@ -171,7 +174,91 @@ public class BankApp {
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
+
+        String message = "Filter by:\n"
+            + "1. By type (deposit, withdraw, transfer)\n"
+            + "2. By date (range)\n";
+
+        System.out.println(message);
+        System.out.print("Please enter command: ");
+        String option = scanner.nextLine();
+
+        if (option.equals("1")) {
+            handleTransactionHistoryByType();
+        } else if (option.equals("2")) {
+            handleTransactionHistoryByDate();
+        }
     }
+
+    private void handleTransactionHistoryByType() {
+        System.out.println("View transaction history by type\n");
+
+        String message = "Filter by type:\n"
+            + "1. Deposits\n"
+            + "2. Withdraws\n"
+            + "3. Transfers\n";
+
+        System.out.println(message);
+        System.out.print("Please enter command: ");
+        String option = scanner.nextLine();
+
+        if (option.equals("1")) {
+            handleTransactionHistoryByType(TransactionAction.DEPOSIT, null, null);
+        } else if (option.equals("2")) {
+            handleTransactionHistoryByType(TransactionAction.WITHDRAW, null, null);
+        } else if (option.equals("3")) {
+            handleTransactionHistoryByType(TransactionAction.TRANSFER, null, null);
+        }
+    }
+
+    private void handleTransactionHistoryByDate() {
+        System.out.println("View transaction history by date\n");
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+
+        System.out.print("Please enter start date (MM/dd/yyyy): ");
+        String startDateInput = scanner.nextLine();
+
+        System.out.print("Please enter end date (MM/dd/yyyy): ");
+        String endDateInput = scanner.nextLine();
+
+        try {
+            LocalDate startDate = LocalDate.parse(startDateInput, formatter);
+
+            LocalDate endDate = LocalDate.parse(endDateInput, formatter);
+
+            if (endDate.isBefore(startDate)) {
+                System.out.println("End date cannot be before start date.");
+                return;
+            }
+
+            LocalDateTime startDateTime = startDate.atStartOfDay();
+
+            LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+
+            handleTransactionHistoryByType( null, startDateTime, endDateTime);
+        } catch (DateTimeParseException e) {
+            System.out.println(
+                "Invalid date. Please use MM/dd/yyyy."
+            );
+        }
+    }
+
+    private void handleTransactionHistoryByType(TransactionAction action, LocalDateTime starTime, LocalDateTime endTime) {
+        System.out.println("View transaction history");
+
+        try {
+            int customerId = customer.get().getId();
+            List<Transaction> transactions = bankDao.getTransactionHistory(customerId, action, starTime, endTime);
+
+            for (Transaction transaction : transactions) {
+                printTransaction(transaction, customerId);
+            }
+
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    } 
 
     private void printTransaction(Transaction transaction, int customerId) {
         String date = transaction.getCreatedAt().format(DateTimeFormatter.ofPattern("M/d/yyyy"));
