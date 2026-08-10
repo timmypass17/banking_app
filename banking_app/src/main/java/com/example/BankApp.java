@@ -15,6 +15,7 @@ import com.example.models.BankAccount;
 import com.example.models.BankAccountByCustomerResult;
 import com.example.models.BankAccountType;
 import com.example.models.Customer;
+import com.example.models.Transaction;
 import com.example.models.TransferResult;
 import com.example.models.helpers.BankAccountSummary;
 import com.example.services.BankDAO;
@@ -133,15 +134,125 @@ public class BankApp {
         String option = scanner.nextLine();
 
         if (option.equals("1")) {
-            // get all account
             handleViewAllAccounts();
         } else if (option.equals("2")) {
             handleOpenBankAccount();
         } else if (option.equals("3")) {
-            // TODO: Handle transaction history
+            handleTransactionHistory();
         } else if (option.equals("4")) {
-            // TODO: Update profile
             handleUpdateProfile();
+        }
+    }
+
+    // (3)
+    // View transaction history
+    // (8/7/2026) Deposit $100 to Timmy's Bank of America
+    // - Timmy's Bank of America New balance: $200
+    // (8/4/2026) Withdraw $50 from Timmy's Bank of America 
+    // - Timmy's Bank of America New balance: $150
+    // (8/3/2026) Transfer $10 from Timmy's Bank of America to Jojo's Chase
+    // - Timmy's Bank of America New balance: $100
+    // - Jojo's Chase New balance: $50
+    // (8/3/2026) Transfer $15 to Jojo's Chase
+    // Filter By:
+    // 1. By type (deposit, withdraw, transfer)
+    // 2. By date (range)
+    // Please enter command: 
+    public void handleTransactionHistory() {
+        System.out.println("View transaction history");
+
+        try {
+            int customerId = customer.get().getId();
+            List<Transaction> transactions = bankDao.getTransactionHistory(customerId);
+
+            for (Transaction transaction : transactions) {
+                printTransaction(transaction, customerId);
+            }
+
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private void printTransaction(Transaction transaction, int customerId) {
+        String date = transaction.getCreatedAt().format(DateTimeFormatter.ofPattern("M/d/yyyy"));
+
+        System.out.printf(
+            "(%s) ",
+            date
+        );
+
+        switch (transaction.getAction()) {
+            case DEPOSIT: 
+                System.out.printf(
+                    "Deposit $%.2f to %s%n",
+                    transaction.getDestinationAmount() / 100.0,
+                    transaction.getDestinationBankName()
+                );
+
+                System.out.printf(
+                    "- %s New balance: $%.2f%n",
+                    transaction.getDestinationBankName(),
+                    transaction.getDestinationResultBalance() / 100.0
+                );
+                break;
+            case WITHDRAW:
+                System.out.printf(
+                    "Withdraw $%.2f from %s%n",
+                    transaction.getSourceAmount() / 100.0,
+                    transaction.getSourceBankName()
+                );
+
+                System.out.printf(
+                    "- %s New balance: $%.2f%n",
+                    transaction.getSourceBankName(),
+                    transaction.getSourceResultBalance() / 100.0
+                );
+                break;
+            case TRANSFER:
+                boolean isSource = transaction.getSourceCustomerId() == customerId;
+
+                if (isSource) {
+                    System.out.printf(
+                        "Transfer $%.2f from %s's %s to %s's %s%n",
+                        transaction.getSourceAmount() / 100.0,
+                        transaction.getSourceCustomerName(),
+                        transaction.getSourceBankName(),
+                        transaction.getDestinationCustomerName(),
+                        transaction.getDestinationBankName()
+                    );
+
+                    System.out.printf(
+                        "- %s's %s New balance: $%.2f%n",
+                        transaction.getSourceCustomerName(),
+                        transaction.getSourceBankName(),
+                        transaction.getSourceResultBalance() / 100.0
+                    );
+
+                    System.out.printf(
+                        "- %s's %s New balance: $%.2f%n",
+                        transaction.getDestinationCustomerName(),
+                        transaction.getDestinationBankName(),
+                        transaction.getDestinationResultBalance() / 100.0
+                    );
+                } else {
+                    System.out.printf(
+                        "Received $%.2f from %s's %s to %s's %s%n",
+                        transaction.getDestinationAmount() / 100.0,
+                        transaction.getSourceCustomerName(),
+                        transaction.getSourceBankName(),
+                        transaction.getDestinationCustomerName(),
+                        transaction.getDestinationBankName()
+                    );
+
+                    System.out.printf(
+                        "- %s's %s New balance: $%.2f%n",
+                        transaction.getDestinationCustomerName(),
+                        transaction.getDestinationBankName(),
+                        transaction.getDestinationResultBalance() / 100.0
+                    );
+                }
+                break;
         }
     }
 
@@ -495,7 +606,7 @@ public class BankApp {
             .longValueExact();
         
         try {
-            long newBalance = bankDao.deposit(bankAccountId, amount);
+            long newBalance = bankDao.deposit(customer.get().getId(), bankAccountId, amount);
             System.out.printf("Successfully deposited $%s to \"%s\".%n", dollars, bankName);
             System.out.printf("New Balance: $%.2f%n", newBalance / 100.0);
         } catch (SQLException e) {
@@ -772,14 +883,31 @@ public class BankApp {
 
 // (3)
 // View transaction history
-// (8/7/2026) Deposit $100 to "Bank of America" 
-// - New balance: $200
-// (8/4/2026) Withdraw $50 from "Bank of America" 
+// (8/7/2026) Deposit $100 to Timmy's Bank of America
+// - Timmy's new balance: $200
+// (8/4/2026) Withdraw $50 from Timmy's Bank of America 
 // - New balance: $150
-// (8/3/2026) Transfer $10 from "Bank of America" to "Chase" 
+// (8/3/2026) Transfer $10 from Timmy's Bank of America to Jojo's Chase
 // - New Bank of America balance: $100
 // - New chase balance: $50
-// (8/3/2026) Transfer $15 to "Timmy"
+// (8/3/2026) Transfer $15 to Jojo's Chase
+
+// Transaction
+
+// customerId: Int
+// createdAt: LocalDateTime (date and time) TIMESTAMP on postgres
+// action: Enum (DEPOSIT, WITHDRAW, TRANSFER)
+// sourceAmount: Long
+// sourceBankId: Int
+// sourceResultBalance: Long
+// sourceCustomerId: Int
+
+// destinationAmount: Long
+// destinationBankId: Int
+// destinationResultBalance: Long
+// destinationCustomerId: Int
+
+// (<createdAt date> <action | DEPOSIT, WITHDRAW, TRANSFER>)
 
 // Filter by
 // 1. Date (single date, or range)
