@@ -2,6 +2,7 @@ package com.example.services;
 
 import java.sql.SQLException;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.bson.Document;
 
@@ -10,6 +11,10 @@ import com.example.utils.MongoConnectionManager;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.FindOneAndUpdateOptions;
+import com.mongodb.client.model.ReturnDocument;
+import com.mongodb.client.model.Updates;
+import com.mongodb.client.result.UpdateResult;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
 
@@ -26,6 +31,7 @@ public class MongoCustomerDAO implements CustomerDAO {
                 BCrypt.withDefaults()
                         .hashToString(12, customer.getPassword().toCharArray());
 
+        customer.setId(UUID.randomUUID().toString());
         customer.setPassword(hashedPassword);
 
         try {
@@ -77,15 +83,60 @@ public class MongoCustomerDAO implements CustomerDAO {
     }
 
     @Override
-    public Optional<Customer> updateProfile(String customerId, Customer customer) throws SQLException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'updateProfile'");
+    public Optional<Customer> updateProfile(
+            String customerId,
+            Customer customer) {
+
+        MongoCollection<Customer> collection =
+                MongoConnectionManager
+                        .getDatabase()
+                        .getCollection("customers", Customer.class);
+
+        UpdateResult result = collection.updateOne(
+                Filters.eq("_id", customerId),
+
+                Updates.combine(
+                        Updates.set("firstName", customer.getFirstName()),
+                        Updates.set("lastName", customer.getLastName()),
+                        Updates.set("dateOfBirth", customer.getDateOfBirth()),
+                        Updates.set("email", customer.getEmail())
+                )
+        );
+
+        if (result.getMatchedCount() == 0) {
+            return Optional.empty();
+        }
+
+        return Optional.of(customer);
     }
 
     @Override
-    public Optional<Customer> updatePassword(String customerId, Customer customer) throws SQLException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'updatePassword'");
+    public Optional<Customer> updatePassword(
+            String customerId,
+            Customer customer) {
+
+        MongoCollection<Customer> collection =
+                MongoConnectionManager
+                        .getDatabase()
+                        .getCollection("customers", Customer.class);
+
+        String hashedPassword =
+                BCrypt.withDefaults()
+                        .hashToString(
+                                12,
+                                customer.getPassword().toCharArray()
+                        );
+
+        Customer updatedCustomer = collection.findOneAndUpdate(
+                Filters.eq("_id", customerId),
+
+                Updates.set("password", hashedPassword),
+
+                new FindOneAndUpdateOptions()
+                        .returnDocument(ReturnDocument.AFTER)
+        );
+
+        return Optional.ofNullable(updatedCustomer);
     }
     
 }

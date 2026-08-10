@@ -26,11 +26,6 @@ import com.example.models.helpers.BankAccountSummary;
 public class PostgresBankDAO implements BankDAO {
     @Override
     public List<BankAccountByCustomerResult> getAllBankAccountsByCustomerId(String customerId) {
-        /*
-         * This implementation showcases how a Simple Statement
-         * Object works - this is used because there is no
-         * fear of SQL injection (the query takes no user input)
-         */
         List<BankAccountByCustomerResult> bankAccounts = new ArrayList<BankAccountByCustomerResult>();
         String query = "SELECT ba.id AS bank_account_id, b.name AS bank_name \n" +
                         "FROM bank_accounts AS ba\n" +

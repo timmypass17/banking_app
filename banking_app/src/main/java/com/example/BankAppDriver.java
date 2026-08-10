@@ -39,7 +39,7 @@ public class BankAppDriver
     public static void main( String[] args )
     {
 
-        boolean usePostgres = true;
+        boolean usePostgres = false;
         Scanner scanner = new Scanner(System.in);
         CustomerDAO customerDao;
         BankDAO bankDao;
@@ -48,17 +48,6 @@ public class BankAppDriver
             customerDao = new PostgresCustomerDAO();
             bankDao = new PostgresBankDAO();
         } else {
-            // MongoClient client = MongoConnectionManager.getMongoClient();
-
-            // CodecRegistry pojoCodecRegistry = fromRegistries(
-            //     MongoClientSettings.getDefaultCodecRegistry(),
-            //     fromProviders(PojoCodecProvider.builder().automatic(true).build())
-            // );
-
-            // Create our database using the registry provider above
-            // MongoDatabase database = client.getDatabase("bank_db")
-            //         .withCodecRegistry(pojoCodecRegistry);
-
             customerDao = new MongoCustomerDAO();
             bankDao = new MongoBankDAO();
         }

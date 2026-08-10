@@ -4,6 +4,8 @@ public class TransferResult {
     private long sourceNewBalance;
     private long destinationNewBalance;
 
+    public TransferResult() {}
+
     public TransferResult(long sourceNewBalance, long destinationNewBalance) {
         this.sourceNewBalance = sourceNewBalance;
         this.destinationNewBalance = destinationNewBalance;

@@ -4,6 +4,11 @@ public class Bank {
     private String id;
     private String name;
 
+    // need no args for mongo
+    public Bank() {
+
+    }
+
     public Bank(String id, String name) {
         this.id = id;
         this.name = name;
