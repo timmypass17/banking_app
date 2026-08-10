@@ -6,20 +6,31 @@ public class BankAccount {
     private int bankId;
     private BankAccountType accountType;
     private long balance;
+    private boolean isActive;
 
-    public BankAccount(int id, int customerId, int bankId, BankAccountType accountType, long balance) {
+    public BankAccount(int id, int customerId, int bankId, BankAccountType accountType, long balance, boolean isActive) {
         this.id = id;
         this.customerId = customerId;
         this.bankId = bankId;
         this.accountType = accountType;
         this.balance = balance;
+        this.isActive = isActive;
     }
 
-    public BankAccount(int customerId, int bankId, BankAccountType accountType, long balance) {
+    public BankAccount(int customerId, int bankId, BankAccountType accountType, long balance, boolean isActive) {
         this.customerId = customerId;
         this.bankId = bankId;
         this.accountType = accountType;
         this.balance = balance;
+        this.isActive = isActive;
+    }
+
+    public boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(boolean isActive) {
+        this.isActive = isActive;
     }
 
     public int getId() {
