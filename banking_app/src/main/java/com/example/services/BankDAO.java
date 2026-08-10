@@ -26,4 +26,7 @@ public interface BankDAO {
     Optional<BankAccount> createBankAccount(BankAccount bankAccount) throws SQLException;
 
     List<Transaction> getTransactionHistory(int customerId) throws SQLException; 
+
+    boolean closeAccount(int bankAccountId) throws SQLException;
+    boolean reactivateAccount(int bankAccountId) throws SQLException;
 }

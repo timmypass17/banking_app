@@ -27,7 +27,8 @@ CREATE TABLE bank_accounts (
     customer_id INTEGER NOT NULL REFERENCES customers(id),
 	bank_id INTEGER NOT NULL REFERENCES banks(id),
     bank_account_type bank_account_type NOT NULL,
-    balance BIGINT NOT NULL
+    balance BIGINT NOT NULL,
+	is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 SELECT * FROM customers;
@@ -94,15 +95,37 @@ CREATE TABLE transactions (
     destination_result_balance BIGINT
 );
 
-SELECT * 
+SELECT
+    t.*,
+
+    -- Source
+    sc.id AS source_customer_id,
+    sb.id AS source_bank_id,
+    sc.first_name AS source_customer_name,
+    sb.name AS source_bank_name,
+
+    -- Destination
+    dc.id AS destination_customer_id,
+    db.id AS destination_bank_id,
+    dc.first_name AS destination_customer_name,
+    db.name AS destination_bank_name
+
 FROM transactions AS t
+
 LEFT JOIN bank_accounts AS sa
     ON t.source_account_id = sa.id
+
 LEFT JOIN bank_accounts AS da
     ON t.destination_account_id = da.id
+
 LEFT JOIN customers AS sc
     ON sa.customer_id = sc.id
-LEFT JOIN customers AS dc
-    ON da.customer_id = dc.id;
 
-SELECT * FROM transactions;
+LEFT JOIN customers AS dc
+    ON da.customer_id = dc.id
+
+LEFT JOIN banks AS sb
+    ON sa.bank_id = sb.id
+
+LEFT JOIN banks AS db
+    ON da.bank_id = db.id;

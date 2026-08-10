@@ -74,7 +74,8 @@ public class PostgresBankDAO implements BankDAO {
                             rs.getInt("customer_id"),
                             rs.getInt("bank_id"),
                             BankAccountType.valueOf(rs.getString("bank_account_type")),
-                            rs.getLong("balance")
+                            rs.getLong("balance"),
+                            rs.getBoolean("is_active")
                         )
                     );
                 }
@@ -409,7 +410,8 @@ public class PostgresBankDAO implements BankDAO {
                             bankAccount.getCustomerId(),
                             bankAccount.getBankId(),
                             bankAccount.getAccountType(),
-                            bankAccount.getBalance()
+                            bankAccount.getBalance(),
+                            bankAccount.getIsActive()
                         )
                     );
                 }
@@ -542,5 +544,41 @@ public class PostgresBankDAO implements BankDAO {
         }
 
         return transactions;
+    }
+    
+    @Override
+    public boolean closeAccount(int bankAccountId) throws SQLException {
+        String query =
+            "UPDATE bank_accounts " +
+            "SET is_active = FALSE " +
+            "WHERE id = ? " +
+            "AND is_active = TRUE";
+
+        try (
+            Connection conn = ConnectionUtil.getConnection();
+            PreparedStatement ps = conn.prepareStatement(query)
+        ) {
+            ps.setInt(1, bankAccountId);
+
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    @Override
+    public boolean reactivateAccount(int bankAccountId) throws SQLException {
+        String query =
+            "UPDATE bank_accounts " +
+            "SET is_active = TRUE " +
+            "WHERE id = ? " +
+            "AND is_active = FALSE";
+
+        try (
+            Connection conn = ConnectionUtil.getConnection();
+            PreparedStatement ps = conn.prepareStatement(query)
+        ) {
+            ps.setInt(1, bankAccountId);
+
+            return ps.executeUpdate() > 0;
+        }
     }
 }

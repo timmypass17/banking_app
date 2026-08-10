@@ -88,12 +88,11 @@ public class BankApp {
         String firstName;
         String lastName;
         String dobStr;
-        LocalDate dob;
+        LocalDate dateOfBirth;
         String email;
         String password;
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        LocalDate dateOfBirth = LocalDate.parse("08/07/2026", formatter);
 
         System.out.print("Please enter first name: ");
         firstName = scanner.nextLine();
@@ -103,7 +102,7 @@ public class BankApp {
             System.out.print("Please enter dob (yyyy-MM-dd): ");
             dobStr = scanner.nextLine();
             try {
-                dob = LocalDate.parse(dobStr, formatter);
+                dateOfBirth = LocalDate.parse(dobStr, formatter);
                 break;
             } catch (DateTimeParseException e) {
                 System.out.println("Invalid date of birth format.");
@@ -515,7 +514,7 @@ public class BankApp {
 
         // Create account
         try {
-            bankDao.createBankAccount(new BankAccount(customer.get().getId(), selectedBank.getId(), accountType, 0));
+            bankDao.createBankAccount(new BankAccount(customer.get().getId(), selectedBank.getId(), accountType, 0, true));
             System.out.printf(
                 "You successfully created %s account for %s!%n",
                 accountType.toString().toLowerCase(),
@@ -561,11 +560,12 @@ public class BankApp {
                 bank.getName() + "\n"
                 + "Total balance: " + account.getBalanceFormatted() + "\n"
                 + "Account Type: " + account.getAccountType() + "\n"
+                + "Is Active: " + account.getIsActive() + "\n"
                 + "1. Deposit\n"
                 + "2. Withdraw\n"
                 + "3. Transfer money to another accounts\n"
                 + "4. Transfer money to another user\n"
-                + "5. Close account\n";
+                + "5. Close/Reactive account\n";
             System.out.println(message);
 
             System.out.print("Please enter command: ");
@@ -582,12 +582,27 @@ public class BankApp {
                 handleTransferMoneyToAnotherAccount(bank, bankAccountId);
             } else if (option.equals("4")) {
                 handleTransferMoneyToAnotherUserAccount(bank, bankAccountId);
+            } else if (option.equals("5")) {
+                handleCloseReactiveAccount(account);
             }
 
 
         } catch (SQLException e) {
             // dao knows database fails, but service knows what to do about it so propagate it
             System.out.printf("Database error, failed to get bank account details id %d: %s%n", bankAccountId, e.getMessage());
+        }
+    }
+
+    // Close account?
+    public void handleCloseReactiveAccount(BankAccount account) {
+        try {
+            if (account.getIsActive()) {
+                bankDao.closeAccount(account.getId());
+            } else {
+                bankDao.reactivateAccount(account.getId());
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
         }
     }
 
