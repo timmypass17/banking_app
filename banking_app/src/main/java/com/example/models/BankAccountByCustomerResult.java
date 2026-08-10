@@ -1,15 +1,15 @@
 package com.example.models;
 
 public class BankAccountByCustomerResult {
-    public int bankAccountId;
+    public String bankAccountId;
     public String bankName;
 
-    public BankAccountByCustomerResult(int bankAccountId, String bankName) {
+    public BankAccountByCustomerResult(String bankAccountId, String bankName) {
         this.bankAccountId = bankAccountId;
         this.bankName = bankName;
     }
 
-    public int getBankAccountId() {
+    public String getBankAccountId() {
         return bankAccountId;
     }
 

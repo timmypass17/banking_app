@@ -164,7 +164,7 @@ public class BankApp {
         System.out.println("View transaction history");
 
         try {
-            int customerId = customer.get().getId();
+            String customerId = customer.get().getId();
             List<Transaction> transactions = bankDao.getTransactionHistory(customerId, null, null, null);
 
             for (Transaction transaction : transactions) {
@@ -248,7 +248,7 @@ public class BankApp {
         System.out.println("View transaction history");
 
         try {
-            int customerId = customer.get().getId();
+            String customerId = customer.get().getId();
             List<Transaction> transactions = bankDao.getTransactionHistory(customerId, action, starTime, endTime);
 
             for (Transaction transaction : transactions) {
@@ -260,7 +260,7 @@ public class BankApp {
         }
     } 
 
-    private void printTransaction(Transaction transaction, int customerId) {
+    private void printTransaction(Transaction transaction, String customerId) {
         String date = transaction.getCreatedAt().format(DateTimeFormatter.ofPattern("M/d/yyyy"));
 
         System.out.printf(
@@ -504,9 +504,6 @@ public class BankApp {
         }
     }
 
-    // TODO: Make mongo version
-    // TODO: Add tests to test dao (mock?)
-
     // View all accounts
     // 1. Bank Of America #0)
     // 2. Chase (#1)
@@ -521,7 +518,7 @@ public class BankApp {
         List<BankAccountByCustomerResult> bankAccountResult = bankDao.getAllBankAccountsByCustomerId(customer.get().getId());
         for (int i = 0; i < bankAccountResult.size(); i++) {
             BankAccountByCustomerResult account = bankAccountResult.get(i);
-            sb.append(String.format("%d. %s (#%d)\n", i + 1, account.getBankName(), account.getBankAccountId()));
+            sb.append(String.format("%d. %s (#%s)\n", i + 1, account.getBankName(), account.getBankAccountId()));
         }
 
         System.out.println(sb.toString());
@@ -536,7 +533,7 @@ public class BankApp {
         String option = scanner.nextLine();
         int accountIndex = Integer.parseInt(option) - 1;
         
-        int selectedAccountId = bankAccountResult.get(accountIndex).getBankAccountId();
+        String selectedAccountId = bankAccountResult.get(accountIndex).getBankAccountId();
         handleBankAccountDetail(selectedAccountId);
     }
     
@@ -621,7 +618,7 @@ public class BankApp {
     // 3. Transfer money to another accounts
     // 4. Transfer moeny to another user
     // 5. Close account
-    public void handleBankAccountDetail(int bankAccountId) {
+    public void handleBankAccountDetail(String bankAccountId) {
         // get bank account by id
         try {
             BankAccount account = null;
@@ -629,7 +626,7 @@ public class BankApp {
 
             Optional<BankAccount> optAccount = bankDao.getBankAccountById(bankAccountId);
             if (!optAccount.isPresent()) {
-                System.out.printf("Bank account with id %d not found", bankAccountId);
+                System.out.printf("Bank account with id %s not found", bankAccountId);
                 return;
             }
 
@@ -637,7 +634,7 @@ public class BankApp {
             Optional<Bank> optBank = bankDao.getBankById(account.getBankId());  // optimization: could've made one query using join
 
             if (!optBank.isPresent()) {
-                System.out.printf("Bank with id %d not found", bankAccountId);
+                System.out.printf("Bank with id %s not found", bankAccountId);
                 return;
             }
 
@@ -676,7 +673,7 @@ public class BankApp {
 
         } catch (SQLException e) {
             // dao knows database fails, but service knows what to do about it so propagate it
-            System.out.printf("Database error, failed to get bank account details id %d: %s%n", bankAccountId, e.getMessage());
+            System.out.printf("Database error, failed to get bank account details id %s: %s%n", bankAccountId, e.getMessage());
         }
     }
 
@@ -698,7 +695,7 @@ public class BankApp {
     // Please enter amount: 100
     // Successfully deposited $100 to "Bank of America".
     // New Balance: $100
-    public void handleDeposit(String bankName, int bankAccountId) {
+    public void handleDeposit(String bankName, String bankAccountId) {
         System.out.println("Deposit into " + bankName + " how much money?");
         System.out.print("Please enter amount: ");
 
@@ -727,7 +724,7 @@ public class BankApp {
     // Successfully transfered $100 to "Chase".
     // Bank of America New Balance: $0
     // Chase New Balance: $100
-    public void handleTransferMoneyToAnotherAccount(Bank bank, int sourceAccountId) {
+    public void handleTransferMoneyToAnotherAccount(Bank bank, String sourceAccountId) {
         // Fetch all other banks thats not the selected one
 
         System.out.printf("Transfer money from %s into another account?%n", bank.getName());
@@ -739,7 +736,7 @@ public class BankApp {
 
         for (int i = 0; i < bankAccountResult.size(); i++) {
             BankAccountByCustomerResult account = bankAccountResult.get(i);
-            sb.append(String.format("%d. %s (#%d)\n", i + 1, account.getBankName(), account.getBankAccountId()));
+            sb.append(String.format("%d. %s (#%s)\n", i + 1, account.getBankName(), account.getBankAccountId()));
         }
 
         System.out.println(sb.toString());
@@ -748,7 +745,7 @@ public class BankApp {
         String option = scanner.nextLine();
         int accountIndex = Integer.parseInt(option) - 1;
         
-        int destinationAccountId = bankAccountResult.get(accountIndex).getBankAccountId();
+        String destinationAccountId = bankAccountResult.get(accountIndex).getBankAccountId();
 
         System.out.print("Please enter amount: ");
 
@@ -773,7 +770,7 @@ public class BankApp {
     // 1. Person A (Bank A)
     // 2. Person A (Bank B)
     // 3. Person B (Bank A)
-    public void handleTransferMoneyToAnotherUserAccount(Bank bank, int sourceAccountId) {
+    public void handleTransferMoneyToAnotherUserAccount(Bank bank, String sourceAccountId) {
         System.out.printf(
             "Transfer money from %s into another user's account?%n",
             bank.getName()
@@ -793,7 +790,7 @@ public class BankApp {
         }
 
         // Remove accounts belonging to the current user
-        int currentCustomerId = customer.get().getId();
+        String currentCustomerId = customer.get().getId();
 
         accounts.removeIf(
             account -> account.getCustomerId() == currentCustomerId
@@ -804,7 +801,7 @@ public class BankApp {
             BankAccountSummary account = accounts.get(i);
 
             System.out.printf(
-                "%d. %s (%s #%d)%n",
+                "%d. %s (%s #%s)%n",
                 i + 1,
                 account.getCustomerName(),
                 account.getBankName(),
@@ -888,7 +885,7 @@ public class BankApp {
     // Please enter amount: 100
     // Successfully withdrew $100 to "Bank of America".
     // New Balance: $100
-    public void handleWithdraw(String bankName, int bankAccountId) {
+    public void handleWithdraw(String bankName, String bankAccountId) {
         System.out.println("Withdraw from " + bankName + " how much money?");
         System.out.print("Please enter amount: ");
 

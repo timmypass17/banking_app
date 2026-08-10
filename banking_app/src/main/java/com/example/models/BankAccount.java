@@ -1,14 +1,14 @@
 package com.example.models;
 
 public class BankAccount {
-    private int id;
-    private int customerId;
-    private int bankId;
+    private String id;
+    private String customerId;
+    private String bankId;
     private BankAccountType accountType;
     private long balance;
     private boolean isActive;
 
-    public BankAccount(int id, int customerId, int bankId, BankAccountType accountType, long balance, boolean isActive) {
+    public BankAccount(String id, String customerId, String bankId, BankAccountType accountType, long balance, boolean isActive) {
         this.id = id;
         this.customerId = customerId;
         this.bankId = bankId;
@@ -17,7 +17,7 @@ public class BankAccount {
         this.isActive = isActive;
     }
 
-    public BankAccount(int customerId, int bankId, BankAccountType accountType, long balance, boolean isActive) {
+    public BankAccount(String customerId, String bankId, BankAccountType accountType, long balance, boolean isActive) {
         this.customerId = customerId;
         this.bankId = bankId;
         this.accountType = accountType;
@@ -33,27 +33,27 @@ public class BankAccount {
         this.isActive = isActive;
     }
 
-    public int getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(String id) {
         this.id = id;
     }
 
-    public int getCustomerId() {
+    public String getCustomerId() {
         return customerId;
     }
 
-    public void setCustomerId(int customerId) {
+    public void setCustomerId(String customerId) {
         this.customerId = customerId;
     }
 
-    public int getBankId() {
+    public String getBankId() {
         return bankId;
     }
 
-    public void setBankId(int bankId) {
+    public void setBankId(String bankId) {
         this.bankId = bankId;
     }
 

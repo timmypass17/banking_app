@@ -1,7 +1,7 @@
 DROP TABLE customers;
 
 CREATE TABLE customers(
-	id SERIAL PRIMARY KEY,
+	id VARCHAR(255) PRIMARY KEY NOT NULL,
 	first_name VARCHAR(255) NOT NULL,
 	last_name VARCHAR(255) NOT NULL,
 	date_of_birth DATE NOT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE customers(
 -- VALUES ('Timmy', 'Nguyen', '2001-10-29', 'timmy@gmail.com', 'password')
 
 CREATE TABLE banks(
-	id SERIAL PRIMARY KEY,
+	id VARCHAR(255) PRIMARY KEY NOT NULL,
 	name VARCHAR(255) NOT NULL
 );
 
@@ -23,24 +23,28 @@ DROP TYPE bank_account_type;
 CREATE TYPE bank_account_type AS ENUM ('CHECKINGS', 'SAVINGS');
 
 CREATE TABLE bank_accounts (
-    id SERIAL PRIMARY KEY,
-    customer_id INTEGER NOT NULL REFERENCES customers(id),
-	bank_id INTEGER NOT NULL REFERENCES banks(id),
+	id VARCHAR(255) PRIMARY KEY NOT NULL,
+    customer_id VARCHAR(255) NOT NULL REFERENCES customers(id),
+	bank_id VARCHAR(255) NOT NULL REFERENCES banks(id),
     bank_account_type bank_account_type NOT NULL,
     balance BIGINT NOT NULL,
 	is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
+ALTER TABLE bank_accounts
+ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE;
+
 SELECT * FROM customers;
 
 DELETE FROM customers;
 
+-- insert default banks
 INSERT INTO banks (name)
 VALUES 
-	('Bank of America'),
-	('Chase'),
-	('Wells Fargo'),
-	('Citibank');
+	('1', 'Bank of America'),
+	('1', 'Chase'),
+	('1', 'Wells Fargo'),
+	('1', 'Citibank');
 
 SELECT * FROM banks;
 
@@ -81,17 +85,17 @@ CREATE TYPE transaction_action AS ENUM (
 DROP TABLE transactions;
 
 CREATE TABLE transactions (
-    id SERIAL PRIMARY KEY,
+	id VARCHAR(255) PRIMARY KEY NOT NULL,
 
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     action transaction_action NOT NULL,
 
     source_amount BIGINT,
-    source_account_id INT REFERENCES bank_accounts(id),
+    source_account_id VARCHAR(255) REFERENCES bank_accounts(id),
     source_result_balance BIGINT,
 
     destination_amount BIGINT,
-    destination_account_id INT REFERENCES bank_accounts(id),
+    destination_account_id VARCHAR(255) REFERENCES bank_accounts(id),
     destination_result_balance BIGINT
 );
 
@@ -129,3 +133,14 @@ LEFT JOIN banks AS sb
 
 LEFT JOIN banks AS db
     ON da.bank_id = db.id;
+
+SELECT * FROM bank_accounts;
+
+-- reset db
+DROP TABLE customers;
+DROP TABLE bank_accounts;
+DROP TABLE banks;
+DROP TABLE transactions;
+
+-- select all
+SELECT * FROM customers;

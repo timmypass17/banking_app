@@ -4,38 +4,38 @@ import java.time.LocalDateTime;
 
 public class Transaction {
 
-    private int id;
+    private String id;
     private LocalDateTime createdAt;
     private TransactionAction action;
 
     private Long sourceAmount;
-    private Integer sourceBankAccountId;
+    private String sourceBankAccountId;
     private Long sourceResultBalance;   // snapshot
 
     private Long destinationAmount;
-    private Integer destinationBankAccountId;
+    private String destinationBankAccountId;
     private Long destinationResultBalance;
 
     // Join result fields (could've made separate model but its fine)
-    private Integer sourceCustomerId;
-    private Integer sourceBankId;
+    private String sourceCustomerId;
+    private String sourceBankId;
     private String sourceCustomerName;
     private String sourceBankName;
 
-    private Integer destinationCustomerId;
-    private Integer destinationBankId;
+    private String destinationCustomerId;
+    private String destinationBankId;
     private String destinationCustomerName;
     private String destinationBankName;
 
     public Transaction(
-        int id,
+        String id,
         LocalDateTime createdAt,
         TransactionAction action,
         Long sourceAmount,
-        Integer sourceBankAccountId,
+        String sourceBankAccountId,
         Long sourceResultBalance,
         Long destinationAmount,
-        Integer destinationBankAccountId,
+        String destinationBankAccountId,
         Long destinationResultBalance
     ) {
         this.id = id;
@@ -51,19 +51,19 @@ public class Transaction {
         this.destinationResultBalance = destinationResultBalance;
     }
 
-    public Integer getSourceBankAccountId() {
+    public String getSourceBankAccountId() {
         return this.sourceBankAccountId;
     }
 
-    public Integer getDestinationBankAccountId() {
+    public String getDestinationBankAccountId() {
         return this.destinationBankAccountId;
     }
 
-    public int getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -91,11 +91,11 @@ public class Transaction {
         this.sourceAmount = sourceAmount;
     }
 
-    public Integer getSourceBankId() {
+    public String getSourceBankId() {
         return sourceBankId;
     }
 
-    public void setSourceBankId(Integer sourceBankId) {
+    public void setSourceBankId(String sourceBankId) {
         this.sourceBankId = sourceBankId;
     }
 
@@ -107,11 +107,11 @@ public class Transaction {
         this.sourceResultBalance = sourceResultBalance;
     }
 
-    public Integer getSourceCustomerId() {
+    public String getSourceCustomerId() {
         return sourceCustomerId;
     }
 
-    public void setSourceCustomerId(Integer sourceCustomerId) {
+    public void setSourceCustomerId(String sourceCustomerId) {
         this.sourceCustomerId = sourceCustomerId;
     }
 
@@ -123,11 +123,11 @@ public class Transaction {
         this.destinationAmount = destinationAmount;
     }
 
-    public Integer getDestinationBankId() {
+    public String getDestinationBankId() {
         return destinationBankId;
     }
 
-    public void setDestinationBankId(Integer destinationBankId) {
+    public void setDestinationBankId(String destinationBankId) {
         this.destinationBankId = destinationBankId;
     }
 
@@ -139,11 +139,11 @@ public class Transaction {
         this.destinationResultBalance = destinationResultBalance;
     }
 
-    public Integer getDestinationCustomerId() {
+    public String getDestinationCustomerId() {
         return destinationCustomerId;
     }
 
-    public void setDestinationCustomerId(Integer destinationCustomerId) {
+    public void setDestinationCustomerId(String destinationCustomerId) {
         this.destinationCustomerId = destinationCustomerId;
     }
 

@@ -12,7 +12,7 @@ public interface CustomerDAO {
     Optional<Customer> register(Customer customer);
     Optional<Customer> login(String email, String password);
 
-    Optional<Customer> updateProfile(int customerId, Customer customer)  throws SQLException;
+    Optional<Customer> updateProfile(String customerId, Customer customer)  throws SQLException;
     // separte to prevent rehashing pass on each update
-    Optional<Customer> updatePassword(int customerId, Customer customer) throws SQLException;
+    Optional<Customer> updatePassword(String customerId, Customer customer) throws SQLException;
 }
